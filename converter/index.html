@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- This page is not allowed to connect to anything: no fonts, no images, no data out. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<!--HEAD-->
+<title>L4GG Email Converter</title>
+<style>
+/* Layout: a two-pane workbench. Left = what you pasted and how it was read. Right = the checks, the preview and the HTML to copy. */
+:root {
+  --paper: #f5f7fa;
+  --card: #ffffff;
+  --ink: #14213d;
+  --muted: #5b6577;
+  --line: #dde3ec;
+  --navy: #052460;
+  --cyan: #2a9fd6;
+  --cyan-soft: #e6f4fb;
+  --ok: #1f7a4d;
+  --ok-soft: #e5f4ec;
+  --warn: #8a5a00;
+  --warn-soft: #fff4dc;
+  --bad: #b3261e;
+  --bad-soft: #fdecea;
+  --code-bg: #0f1b33;
+  --code-fg: #d8e2f0;
+  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --display: "Avenir Next", "Segoe UI Semibold", "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c1424; --card: #131e33; --ink: #e6ecf5; --muted: #9aa7bd; --line: #26344f;
+    --navy: #9cc2ff; --cyan: #5cc3ef; --cyan-soft: #12304a;
+    --ok: #6fd3a0; --ok-soft: #12352a; --warn: #f2c66d; --warn-soft: #3a2e12; --bad: #ff8f86; --bad-soft: #3d1a19;
+    --code-bg: #070d19; --code-fg: #d8e2f0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c1424; --card: #131e33; --ink: #e6ecf5; --muted: #9aa7bd; --line: #26344f;
+  --navy: #9cc2ff; --cyan: #5cc3ef; --cyan-soft: #12304a;
+  --ok: #6fd3a0; --ok-soft: #12352a; --warn: #f2c66d; --warn-soft: #3a2e12; --bad: #ff8f86; --bad-soft: #3d1a19;
+  --code-bg: #070d19; --code-fg: #d8e2f0; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--ui); padding-inline: 16px; padding-block: 0 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; }
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; padding-block: 28px 18px; border-bottom: 1px solid var(--line); }
+.brand h1 { margin: 0; font: 600 26px/1.15 var(--display); letter-spacing: -0.01em; color: var(--navy); text-wrap: balance; }
+.home { display: inline-block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--cyan); text-decoration: none; }
+.home:hover { text-decoration: underline; }
+.brand p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.lockbadge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.lockbadge svg { width: 14px; height: 14px; }
+
+.picker { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 18px 6px; }
+.picker button { font: 600 14px var(--ui); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; cursor: pointer; }
+.picker button[aria-pressed="true"] { background: var(--navy); color: var(--card); border-color: var(--navy); }
+.picker button:disabled { color: var(--muted); cursor: not-allowed; opacity: .7; }
+.picker small { font-weight: 500; opacity: .8; }
+.howto { color: var(--muted); font-size: 14px; margin: 6px 0 18px; max-width: 95ch; }
+.howto b { color: var(--ink); }
+kbd { font: 600 12px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--card); color: var(--ink); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.pane { background: var(--card); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.pane > .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.step { font: 600 15px var(--display); color: var(--navy); margin: 0; }
+.step span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--cyan-soft); color: var(--navy); font-size: 12px; margin-right: 8px; }
+
+#paste { margin: 16px; min-height: 120px; border: 2px dashed var(--line); border-radius: 10px; padding: 18px; color: var(--muted); outline: none; display: grid; place-items: center; text-align: center; cursor: text; }
+#paste:focus { border-color: var(--cyan); background: var(--cyan-soft); color: var(--ink); }
+#paste.has { min-height: 0; padding: 12px 16px; place-items: start; text-align: left; border-style: solid; }
+.btn { font: 600 14px var(--ui); border-radius: 8px; padding: 8px 14px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--navy); border-color: var(--navy); color: var(--card); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:focus-visible, .picker button:focus-visible, .tabs button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+
+.outline { list-style: none; margin: 0; padding: 0 16px 16px; max-height: 70vh; overflow: auto; }
+.outline li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.outline li:first-child { border-top: 0; }
+.tag { font: 600 11px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: 2px; }
+.outline .t-title .tag, .outline .t-header .tag { color: var(--navy); }
+.outline .t-story .tag { color: var(--cyan); }
+.outline .t-skip, .outline .t-signoff { opacity: .55; }
+.outline .flagged { background: var(--warn-soft); }
+.outline .txt { overflow-wrap: anywhere; }
+.outline .d2 .txt { padding-left: 14px; } .outline .d3 .txt { padding-left: 28px; } .outline .d4 .txt { padding-left: 42px; }
+.outline .t-title .txt, .outline .t-header .txt { font-weight: 700; }
+.outline .t-story .txt { font-weight: 600; }
+
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 16px; }
+.check { border-radius: 10px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); }
+.check .k { font-size: 12px; color: var(--muted); }
+.check .v { font: 600 16px var(--display); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.check.ok { background: var(--ok-soft); border-color: transparent; } .check.ok .v { color: var(--ok); }
+.check.warn { background: var(--warn-soft); border-color: transparent; } .check.warn .v { color: var(--warn); }
+.check.bad { background: var(--bad-soft); border-color: transparent; } .check.bad .v { color: var(--bad); }
+.banner { margin: 0 16px 12px; padding: 12px 14px; border-radius: 10px; font-weight: 600; }
+.banner.bad { background: var(--bad-soft); color: var(--bad); }
+.banner pre { white-space: pre-wrap; font: 12px/1.5 var(--mono); margin: 8px 0 0; color: var(--ink); font-weight: 400; }
+.msgs { margin: 0 16px 12px; display: grid; gap: 8px; }
+.msg { padding: 9px 12px; border-radius: 8px; font-size: 14px; }
+.msg.flag { background: var(--warn-soft); color: var(--ink); border-left: 4px solid var(--warn); }
+.msg.note { background: var(--cyan-soft); color: var(--ink); border-left: 4px solid var(--cyan); }
+.msg.sign { background: var(--paper); border: 1px dashed var(--line); }
+.msg.sign pre { margin: 6px 0 0; white-space: pre-wrap; font: 13px/1.5 var(--ui); }
+
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button { font: 600 13px var(--ui); background: transparent; border: 0; border-radius: 6px; padding: 6px 10px; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--cyan-soft); color: var(--navy); }
+.viewport { padding: 16px; border-top: 1px solid var(--line); min-width: 0; }
+.stage { background: #dfe7ef; border-radius: 10px; padding: 18px 10px; overflow-x: auto; }
+#preview { background: #ffffff; color: #000000; margin: 0 auto; width: 100%; max-width: 600px; border-radius: 4px; padding: 12px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.12); transition: max-width .2s; }
+#preview.mobile { max-width: 375px; padding: 12px 14px; }
+@media (prefers-reduced-motion: reduce) { #preview { transition: none; } }
+#code { width: 100%; min-height: 420px; resize: vertical; border: 0; border-radius: 10px; padding: 14px; background: var(--code-bg); color: var(--code-fg); font: 12px/1.55 var(--mono); }
+.copyrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.copied { color: var(--ok); font-weight: 600; font-size: 13px; }
+
+details.about { margin-top: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+details.about summary { cursor: pointer; font: 600 15px var(--display); color: var(--navy); }
+details.about p, details.about li { max-width: 75ch; color: var(--ink); }
+details.about code { font: 13px var(--mono); }
+.empty { padding: 28px 16px; color: var(--muted); text-align: center; }
+.sample-tag { font: 600 11px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--warn); background: var(--warn-soft); padding: 3px 8px; border-radius: 999px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <a class="home" href="../">&#x2190; L4GG Comms Tools</a>
+      <h1>L4GG Email Converter</h1>
+      <p>Turns a Google Doc into Mailchimp HTML in our house style. It changes formatting only. Every word and link comes from the Doc exactly as written, and it checks that before you copy anything.</p>
+    </div>
+    <span class="lockbadge" title="The page's security settings block all internet connections, so nothing you paste can leave this browser tab.">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 1 1 8 0v2h.5A1.5 1.5 0 0 1 14 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5v-5A1.5 1.5 0 0 1 3.5 7H4Zm2 0h4V5a2 2 0 1 0-4 0v2Z"/></svg>
+      No AI &#xb7; Nothing leaves this tab
+    </span>
+  </header>
+
+  <div class="picker" role="group" aria-label="Newsletter">
+    <button type="button" id="nl-repro" data-nl="repro" aria-pressed="true">Repro Health Digest</button>
+    <button type="button" id="nl-trans" data-nl="trans" aria-pressed="false">Trans Rights Digest</button>
+    <button type="button" id="nl-docket" data-nl="docket" aria-pressed="false">Impact Docket</button>
+    <button type="button" disabled title="Not built yet">Federal Funding Resources <small>&#xb7; coming</small></button>
+    <button type="button" disabled title="Not built yet">L4GG general email <small>&#xb7; coming</small></button>
+  </div>
+  <p class="howto" id="howto"></p>
+
+  <div class="grid">
+    <section class="pane" aria-labelledby="s1">
+      <div class="head">
+        <h2 class="step" id="s1"><span>1</span>Paste from the Google Doc</h2>
+        <button type="button" class="btn" id="clear">Clear</button>
+      </div>
+      <div id="paste" contenteditable="true" role="textbox" aria-label="Paste the Google Doc here" tabindex="0">Click here, then press <kbd>&#x2318;</kbd> <kbd>V</kbd> (or <kbd>Ctrl</kbd> <kbd>V</kbd>)</div>
+      <div class="head" style="border-top:1px solid var(--line)">
+        <h3 class="step" style="font-size:14px">How the converter read it</h3>
+        <span id="readcount" class="tag"></span>
+      </div>
+      <ul class="outline" id="outline"></ul>
+    </section>
+
+    <section class="pane" aria-labelledby="s2">
+      <div class="head">
+        <h2 class="step" id="s2"><span>2</span>Check, then copy into Mailchimp</h2>
+        <div class="copyrow">
+          <span class="copied" id="copied" hidden>Copied</span>
+          <button type="button" class="btn primary" id="copy" disabled>Copy HTML</button>
+        </div>
+      </div>
+      <div class="checks" id="checks"></div>
+      <div id="banner"></div>
+      <div class="msgs" id="msgs"></div>
+      <div class="head" style="border-top:1px solid var(--line)">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" id="tab-desk" aria-selected="true">Preview</button>
+          <button type="button" role="tab" id="tab-mob" aria-selected="false">Phone preview</button>
+          <button type="button" role="tab" id="tab-code" aria-selected="false">HTML</button>
+        </div>
+      </div>
+      <div class="viewport">
+        <div class="stage" id="stage"><div id="preview"></div></div>
+        <textarea id="code" readonly hidden aria-label="HTML to paste into Mailchimp"></textarea>
+      </div>
+    </section>
+  </div>
+
+  <details class="about">
+    <summary>How this works, for anyone reviewing it</summary>
+    <ul>
+      <li><b>No AI, no internet.</b> This is one web page. All of its code is in the page itself. The page's security settings (<code>Content-Security-Policy: default-src 'none'</code>) tell the browser to block every outside connection, so the page cannot send what you paste anywhere, even by mistake. You can check this in your browser's developer tools under Network: nothing is sent when you paste or convert.</li>
+      <li><b>Formatting only.</b> The converter reads bold, italic, underline, links, bullet levels and font sizes from what you paste, and rewrites them in the newsletter's house style (fonts, sizes, colors, spacing). It never adds, removes, reorders or rewords text. The one change it makes to links is removing the <code>google.com/url?q=</code> wrapper that Google Docs adds, so the link goes straight to the page it already pointed to.</li>
+      <li><b>It checks its own work.</b> After converting, it reads the finished HTML back and compares every word, every link and every italic phrase with what you pasted. If anything differs, it shows a red warning with the exact spot.</li>
+      <li><b>It fails loudly.</b> When it meets something it doesn't recognize (an image, highlighted text, a bullet with no title), it keeps the words, marks the line in yellow and tells you what to check. It doesn't guess silently.</li>
+      <li><b>What it leaves to you.</b> The banner, date line, greeting, sign-off and footer stay in the Mailchimp template. Images are added in Mailchimp.</li>
+    </ul>
+    <p style="color:var(--muted);font-size:13px">Version <span id="ver"></span></p>
+  </details>
+</div>
+
+<script>
+/*
+ * L4GG Email Converter \u2014 conversion engine
+ * ----------------------------------------
+ * What this code does: reads the formatting of text pasted from a Google Doc
+ * (bold, italic, underline, links, bullets, font size) and rewrites it as
+ * Mailchimp HTML in the house style for each newsletter.
+ *
+ * What this code cannot do: change, add, reorder or remove words or links.
+ * There is no AI and no network access in this file. Every word in the output
+ * is copied from the pasted text, and verify() re-reads the finished HTML and
+ * compares its words and links with the pasted text before anything is shown
+ * as ready to use.
+ */
+(function (global) {
+  'use strict';
+
+  // ------------------------------------------------------------------
+  // 1. Emoji that Google Docs stores as small images (alt=":name:")
+  // ------------------------------------------------------------------
+  var EMOJI = {
+    pushpin: '\ud83d\udccc', round_pushpin: '\ud83d\udccd', rotating_light: '\ud83d\udea8', zap: '\u26a1',
+    envelope_with_arrow: '\ud83d\udce9', hammer_and_wrench: '\ud83d\udee0\ufe0f', handshake: '\ud83e\udd1d',
+    classical_building: '\ud83c\udfdb\ufe0f', tada: '\ud83c\udf89', red_circle: '\ud83d\udd34', scroll: '\ud83d\udcdc',
+    scales: '\u2696\ufe0f', balance_scale: '\u2696\ufe0f', house: '\ud83c\udfe0', biohazard: '\u2623\ufe0f', factory: '\ud83c\udfed',
+    lock: '\ud83d\udd12', clipboard: '\ud83d\udccb', busts_in_silhouette: '\ud83d\udc65',
+    desktop_computer: '\ud83d\udda5\ufe0f', computer: '\ud83d\udcbb', stethoscope: '\ud83e\ude7a', iphone: '\ud83d\udcf1',
+    studio_microphone: '\ud83c\udf99\ufe0f', loudspeaker: '\ud83d\udce2', speaking_head_in_silhouette: '\ud83d\udde3\ufe0f',
+    speaking_head: '\ud83d\udde3\ufe0f', rainbow_flag: '\ud83c\udff3\ufe0f\u200d\ud83c\udf08', clapper: '\ud83c\udfac', envelope: '\u2709\ufe0f',
+    email: '\ud83d\udce7', mega: '\ud83d\udce3', warning: '\u26a0\ufe0f', white_check_mark: '\u2705', star: '\u2b50',
+    point_right: '\ud83d\udc49', point_down: '\ud83d\udc47', calendar: '\ud83d\udcc5', spiral_calendar_pad: '\ud83d\uddd3\ufe0f',
+    date: '\ud83d\udcc5', link: '\ud83d\udd17', bell: '\ud83d\udd14', memo: '\ud83d\udcdd', pencil: '\ud83d\udcdd', books: '\ud83d\udcda',
+    newspaper: '\ud83d\udcf0', earth_americas: '\ud83c\udf0e', globe_with_meridians: '\ud83c\udf10', bulb: '\ud83d\udca1',
+    fire: '\ud83d\udd25', heart: '\u2764\ufe0f', purple_heart: '\ud83d\udc9c', blue_heart: '\ud83d\udc99',
+    transgender_flag: '\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f', transgender_symbol: '\u26a7\ufe0f', fist: '\u270a',
+    raised_fist: '\u270a', ballot_box_with_ballot: '\ud83d\uddf3\ufe0f', page_facing_up: '\ud83d\udcc4',
+    mag: '\ud83d\udd0d', pray: '\ud83d\ude4f', sparkles: '\u2728', arrow_right: '\u27a1\ufe0f', exclamation: '\u2757',
+    heavy_exclamation_mark: '\u2757', bangbang: '\u203c\ufe0f', question: '\u2753',
+    hospital: '\ud83c\udfe5', pill: '\ud83d\udc8a', school: '\ud83c\udfeb', judge: '\ud83e\uddd1\u200d\u2696\ufe0f', moneybag: '\ud83d\udcb0',
+    dollar: '\ud83d\udcb5', chart_with_upwards_trend: '\ud83d\udcc8', bar_chart: '\ud83d\udcca',
+    loud_sound: '\ud83d\udd0a', microphone: '\ud83c\udfa4', tv: '\ud83d\udcfa', video_camera: '\ud83d\udcf9',
+    camera: '\ud83d\udcf7', handshake_tone1: '\ud83e\udd1d', muscle: '\ud83d\udcaa', clap: '\ud83d\udc4f',
+    hourglass: '\u231b', alarm_clock: '\u23f0', stopwatch: '\u23f1\ufe0f', new: '\ud83c\udd95',
+    eyes: '\ud83d\udc40', thinking_face: '\ud83e\udd14', earth_africa: '\ud83c\udf0d', earth_asia: '\ud83c\udf0f',
+    us: '\ud83c\uddfa\ud83c\uddf8', flag_us: '\ud83c\uddfa\ud83c\uddf8', statue_of_liberty: '\ud83d\uddfd', triangular_flag_on_post: '\ud83d\udea9',
+    construction: '\ud83d\udea7', no_entry: '\u26d4', no_entry_sign: '\ud83d\udeab', key: '\ud83d\udd11',
+    unlock: '\ud83d\udd13', shield: '\ud83d\udee1\ufe0f', gear: '\u2699\ufe0f', wrench: '\ud83d\udd27', hammer: '\ud83d\udd28',
+    seedling: '\ud83c\udf31', sunny: '\u2600\ufe0f', droplet: '\ud83d\udca7', ocean: '\ud83c\udf0a', evergreen_tree: '\ud83c\udf32',
+    deciduous_tree: '\ud83c\udf33', recycle: '\u267b\ufe0f', zap2: '\u26a1', electric_plug: '\ud83d\udd0c',
+    sun_with_face: '\ud83c\udf1e', earth: '\ud83c\udf0e', baby: '\ud83d\udc76', family: '\ud83d\udc6a',
+    woman: '\ud83d\udc69', man: '\ud83d\udc68', people_holding_hands: '\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1', pride: '\ud83c\udff3\ufe0f\u200d\ud83c\udf08',
+    graduation_cap: '\ud83c\udf93', mortar_board: '\ud83c\udf93', briefcase: '\ud83d\udcbc', bookmark: '\ud83d\udd16',
+    label: '\ud83c\udff7\ufe0f', speech_balloon: '\ud83d\udcac', thought_balloon: '\ud83d\udcad', inbox_tray: '\ud83d\udce5',
+    outbox_tray: '\ud83d\udce4', mailbox: '\ud83d\udceb', postbox: '\ud83d\udcee', telephone_receiver: '\ud83d\udcde',
+    phone: '\u260e\ufe0f', hand: '\u270b', raised_hand: '\u270b', wave: '\ud83d\udc4b', thumbsup: '\ud83d\udc4d',
+    '+1': '\ud83d\udc4d', ok_hand: '\ud83d\udc4c', heavy_check_mark: '\u2714\ufe0f', ballot_box_with_check: '\u2611\ufe0f',
+    x: '\u274c', heavy_plus_sign: '\u2795', small_blue_diamond: '\ud83d\udd39',
+    small_orange_diamond: '\ud83d\udd38', large_blue_circle: '\ud83d\udd35', blue_circle: '\ud83d\udd35',
+    green_circle: '\ud83d\udfe2', yellow_circle: '\ud83d\udfe1', orange_circle: '\ud83d\udfe0',
+    purple_circle: '\ud83d\udfe3', black_circle: '\u26ab', white_circle: '\u26aa'
+  };
+
+  // ------------------------------------------------------------------
+  // 2. Small helpers
+  // ------------------------------------------------------------------
+  function escapeText(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\u00a0/g, '&nbsp;');
+  }
+  function escapeAttr(s) {
+    return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  // Google Docs wraps links as https://www.google.com/url?q=REAL_LINK&sa=...
+  // This returns REAL_LINK exactly as written. Nothing else about a link changes.
+  function unwrapLink(href) {
+    if (!href) return href;
+    var m = href.match(/^https?:\/\/(?:www\.)?google\.com\/url\?(.*)$/i);
+    if (m) {
+      var parts = m[1].split('&');
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].indexOf('q=') === 0) {
+          try { return decodeURIComponent(parts[i].slice(2)); } catch (e) { return parts[i].slice(2); }
+        }
+      }
+    }
+    return href;
+  }
+  function normalizeForCompare(s) {
+    return s.replace(/[\s\u00a0\u200b\u200c\u200d\u2060\ufeff]+/g, ' ').trim();
+  }
+  var PICTO = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator})/u;
+  function startsWithEmoji(s) { return PICTO.test(s); }
+  function shorten(s, n) { s = s.replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + '\u2026' : s; }
+
+  // ------------------------------------------------------------------
+  // 3. Reading styles (inline styles plus Google's class-based styles)
+  // ------------------------------------------------------------------
+  function collectClassRules(doc) {
+    var rules = {};
+    var styles = doc.querySelectorAll('style');
+    for (var s = 0; s < styles.length; s++) {
+      var css = styles[s].textContent.replace(/\/\*[\s\S]*?\*\//g, '');
+      var re = /([^{}@]+)\{([^}]*)\}/g, m;
+      while ((m = re.exec(css))) {
+        var sels = m[1].split(',');
+        for (var k = 0; k < sels.length; k++) {
+          var mm = sels[k].trim().match(/^(?:[a-zA-Z0-9]+)?\.([A-Za-z0-9_-]+)$/);
+          if (mm) rules[mm[1]] = (rules[mm[1]] || '') + ';' + m[2];
+        }
+      }
+    }
+    return rules;
+  }
+  function parseDecls(text) {
+    var o = {};
+    if (!text) return o;
+    var parts = text.split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i], j = p.indexOf(':');
+      if (j > 0) o[p.slice(0, j).trim().toLowerCase()] = p.slice(j + 1).trim().toLowerCase();
+    }
+    return o;
+  }
+  function sizeInPt(v) {
+    if (!v) return null;
+    var m = v.match(/^([\d.]+)(pt|px)$/);
+    if (!m) return null;
+    var n = parseFloat(m[1]);
+    return m[2] === 'px' ? n * 0.75 : n;
+  }
+  function isBold(v) { return v === 'bold' || v === 'bolder' || parseInt(v, 10) >= 600; }
+  function isPlainBackground(v) {
+    return !v || v === 'transparent' || v === 'initial' || v === 'inherit' || v === 'none' ||
+      /^#fff(fff)?$/.test(v) || v === 'white' || /^rgba?\(255,\s*255,\s*255/.test(v) || /rgba\([^)]*,\s*0\)$/.test(v);
+  }
+
+  function makeStyler(doc) {
+    var rules = collectClassRules(doc);
+    var cache = new Map();
+    function own(el) {
+      var text = '';
+      if (el.classList) for (var i = 0; i < el.classList.length; i++) { var r = rules[el.classList[i]]; if (r) text += ';' + r; }
+      var st = el.getAttribute && el.getAttribute('style');
+      if (st) text += ';' + st;
+      return parseDecls(text);
+    }
+    function eff(el) {
+      if (!el || el.nodeType !== 1 || el.tagName === 'HTML') {
+        return { b: false, i: false, u: false, s: false, size: null, bg: false, href: null, hidden: false, sup: false };
+      }
+      if (cache.has(el)) return cache.get(el);
+      var p = eff(el.parentElement);
+      var r = { b: p.b, i: p.i, u: p.u, s: p.s, size: p.size, bg: p.bg, href: p.href, hidden: p.hidden, sup: p.sup };
+      var t = el.tagName;
+      if (t === 'B' || t === 'STRONG' || /^H[1-6]$/.test(t)) r.b = true;
+      if (t === 'I' || t === 'EM') r.i = true;
+      if (t === 'U') r.u = true;
+      if (t === 'S' || t === 'STRIKE' || t === 'DEL') r.s = true;
+      if (t === 'SUP' || t === 'SUB') r.sup = true;
+      if (t === 'A' && el.getAttribute('href')) r.href = unwrapLink(el.getAttribute('href'));
+      var o = own(el);
+      if (o['font-weight']) r.b = isBold(o['font-weight']);
+      if (o['font-style']) r.i = o['font-style'] === 'italic' || o['font-style'] === 'oblique';
+      var td = o['text-decoration-line'] || o['text-decoration'];
+      if (td) { r.u = /underline/.test(td); r.s = /line-through/.test(td); }
+      if (o['font-size']) { var sz = sizeInPt(o['font-size']); if (sz) r.size = sz; }
+      if (o['background-color'] !== undefined) r.bg = !isPlainBackground(o['background-color']);
+      if (o['background'] !== undefined && /#|rgb/.test(o['background'])) r.bg = !isPlainBackground(o['background']);
+      if (o['display'] === 'none' || o['visibility'] === 'hidden') r.hidden = true;
+      if (o['vertical-align'] === 'super' || o['vertical-align'] === 'sub') r.sup = true;
+      cache.set(el, r);
+      return r;
+    }
+    return { eff: eff, own: own };
+  }
+
+  // ------------------------------------------------------------------
+  // 4. Breaking the pasted document into blocks (paragraphs and bullets)
+  // ------------------------------------------------------------------
+  var SKIP_TAGS = { STYLE: 1, SCRIPT: 1, META: 1, TITLE: 1, HEAD: 1, LINK: 1, COLGROUP: 1, COL: 1, NOSCRIPT: 1, TEMPLATE: 1 };
+  var BLOCK_SEL = 'p,h1,h2,h3,h4,h5,h6,li,ul,ol,div,table,hr,blockquote';
+
+  function readDocument(html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var styler = makeStyler(doc);
+    var blocks = [];
+    var events = { comments: 0, images: [], tables: 0, footnotes: 0 };
+
+    function isCommentNode(el) {
+      // Google's exported comment and footnote text lives at the end of the document
+      if (!el || el.nodeType !== 1) return false;
+      var a = el.querySelector && el.querySelector('a[href^="#cmnt_ref"],a[id^="cmnt"],a[href^="#ftnt_ref"]');
+      return !!a && el.tagName !== 'BODY' && (el.tagName === 'DIV' || el.tagName === 'P');
+    }
+
+    function runsFrom(nodes) {
+      var runs = [];
+      function visit(n) {
+        if (n.nodeType === 3) {
+          var text = n.data.replace(/[\r\n]+/g, ' ');
+          if (!text) return;
+          var st = styler.eff(n.parentElement);
+          if (st.hidden) return;
+          runs.push({ text: text, b: st.b, i: st.i, u: st.u && !st.href, s: st.s, sup: st.sup, href: st.href, size: st.size, bg: st.bg });
+          return;
+        }
+        if (n.nodeType !== 1 || SKIP_TAGS[n.tagName]) return;
+        var t = n.tagName;
+        if (t === 'A') {
+          var href = n.getAttribute('href') || '';
+          if (/^#(cmnt|ftnt)/.test(href)) { if (/^#cmnt/.test(href)) events.comments++; else events.footnotes++; return; }
+        }
+        if (t === 'SUP' && n.querySelector('a[href^="#cmnt"],a[href^="#ftnt"]')) {
+          if (n.querySelector('a[href^="#cmnt"]')) events.comments++; else events.footnotes++;
+          return;
+        }
+        if (t === 'BR') { runs.push({ br: true, text: '\n' }); return; }
+        if (t === 'IMG') {
+          var st2 = styler.eff(n.parentElement);
+          var alt = (n.getAttribute('alt') || '').trim();
+          var m = alt.match(/^:([a-z0-9_+\-]+):$/i);
+          var emoji = null;
+          if (m && EMOJI[m[1].toLowerCase()]) emoji = EMOJI[m[1].toLowerCase()];
+          else if (alt && PICTO.test(alt) && alt.length <= 12) emoji = alt;
+          if (emoji) runs.push({ text: emoji, emoji: true, b: false, i: false, u: false, href: st2.href, size: st2.size });
+          else { runs.push({ text: '', image: true, alt: alt }); events.images.push(alt || 'image'); }
+          return;
+        }
+        for (var c = n.firstChild; c; c = c.nextSibling) visit(c);
+      }
+      for (var i = 0; i < nodes.length; i++) visit(nodes[i]);
+      return runs;
+    }
+
+    function pushBlock(nodes, info) {
+      var runs = runsFrom(nodes);
+      var text = runs.map(function (r) { return r.text; }).join('');
+      blocks.push({
+        tag: info.tag || 'p', level: info.level || 0, ordered: !!info.ordered, heading: !!info.heading,
+        listId: info.listId || null, runs: runs, text: text,
+        empty: !text.replace(/[\s\u00a0\u200b]/g, '') && !runs.some(function (r) { return r.image; })
+      });
+    }
+
+    var listCounter = 0;
+    function listLevel(li, listEl, depth) {
+      var al = li.getAttribute('aria-level');
+      if (al && /^\d+$/.test(al)) return parseInt(al, 10);
+      var cls = (listEl.getAttribute('class') || '') + ' ' + (li.getAttribute('class') || '');
+      var m = cls.match(/lst-kix_[a-z0-9]+-(\d+)/);
+      if (m) return parseInt(m[1], 10) + 1;
+      return depth;
+    }
+    function listKey(listEl) {
+      var cls = listEl.getAttribute('class') || '';
+      var m = cls.match(/lst-kix_([a-z0-9]+)-\d+/);
+      return m ? m[1] : null;
+    }
+
+    function handleLi(li, listEl, depth, id) {
+      var ordered = listEl.tagName === 'OL';
+      var lvl = listLevel(li, listEl, depth);
+      var lstType = (styler.own(li)['list-style-type'] || '');
+      var isOrdered = ordered || /decimal|alpha|roman/.test(lstType);
+      if (li.querySelector(BLOCK_SEL)) {
+        var buf = [];
+        var flushLi = function () {
+          var has = buf.some(function (n) { return n.nodeType === 1 || (n.nodeType === 3 && n.data.trim()); });
+          if (has) pushBlock(buf, { tag: 'li', level: lvl, ordered: isOrdered, listId: id });
+          buf = [];
+        };
+        for (var k = li.firstChild; k; k = k.nextSibling) {
+          if (k.nodeType === 1 && (k.tagName === 'UL' || k.tagName === 'OL')) { flushLi(); walkList(k, depth + 1, id); }
+          else if (k.nodeType === 1 && /^(P|H[1-6]|DIV)$/.test(k.tagName)) {
+            flushLi();
+            if (k.tagName === 'DIV' && k.querySelector(BLOCK_SEL)) walk(k, { level: lvl, ordered: isOrdered, listId: id });
+            else pushBlock([k], { tag: 'li', level: lvl, ordered: isOrdered, listId: id, heading: /^H/.test(k.tagName) });
+          }
+          else buf.push(k);
+        }
+        flushLi();
+      } else {
+        pushBlock([li], { tag: 'li', level: lvl, ordered: isOrdered, listId: id });
+      }
+    }
+
+    function walkList(listEl, depth, listId) {
+      var id = listKey(listEl) || listId;
+      for (var c = listEl.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType !== 1) continue;
+        if (c.tagName === 'UL' || c.tagName === 'OL') { walkList(c, depth + 1, id); continue; }
+        if (c.tagName !== 'LI') { walk(c, null); continue; }
+        handleLi(c, listEl, depth, id);
+      }
+    }
+
+    function walk(container, listInfo) {
+      var buf = [];
+      function flush() {
+        if (!buf.length) return;
+        var hasText = buf.some(function (n) { return n.nodeType === 1 || (n.nodeType === 3 && n.data.trim()); });
+        if (hasText) pushBlock(buf, listInfo ? { tag: 'li', level: listInfo.level, ordered: listInfo.ordered, listId: listInfo.listId } : { tag: 'p' });
+        buf = [];
+      }
+      for (var c = container.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) { buf.push(c); continue; }
+        if (c.nodeType !== 1 || SKIP_TAGS[c.tagName]) continue;
+        var t = c.tagName;
+        if (isCommentNode(c) && t === 'DIV') { events.comments++; continue; }
+        if (t === 'BR') {
+          if (buf.length) buf.push(c); else blocks.push({ tag: 'p', level: 0, runs: [], text: '', empty: true });
+          continue;
+        }
+        if (t === 'UL' || t === 'OL') { flush(); listCounter++; walkList(c, 1, 'list' + listCounter); continue; }
+        if (/^(P|H[1-6]|LI)$/.test(t)) {
+          flush();
+          if (t === 'P' && isCommentNode(c)) { events.comments++; continue; }
+          if (t === 'LI') { handleLi(c, container, 1, 'list' + (++listCounter)); continue; }
+          pushBlock([c], listInfo ? { tag: 'li', level: listInfo.level, ordered: listInfo.ordered, listId: listInfo.listId } : { tag: t.toLowerCase() });
+          continue;
+        }
+        if (t === 'HR') { flush(); blocks.push({ tag: 'hr', level: 0, runs: [], text: '', empty: false }); continue; }
+        if (t === 'TABLE') { flush(); events.tables++; walk(c, listInfo); continue; }
+        if (/^(DIV|BLOCKQUOTE|TBODY|THEAD|TFOOT|TR|TD|TH|SECTION|ARTICLE|MAIN|CENTER|BODY|FORM|FIGURE|FIGCAPTION)$/.test(t)) {
+          flush(); walk(c, listInfo); continue;
+        }
+        if (c.querySelector && c.querySelector(BLOCK_SEL)) { flush(); walk(c, listInfo); continue; }
+        buf.push(c);
+      }
+      flush();
+    }
+
+    walk(doc.body, null);
+    // Make LI siblings that came through walkList's fake wrapper share a list
+    return { blocks: blocks, events: events };
+  }
+
+  // ------------------------------------------------------------------
+  // 5. Run helpers shared by every newsletter
+  // ------------------------------------------------------------------
+  function visibleRuns(runs) { return runs.filter(function (r) { return !r.br && !r.image && r.text.replace(/[\s\u00a0\u200b]/g, ''); }); }
+  function textRuns(runs) { return visibleRuns(runs).filter(function (r) { return !r.emoji; }); }
+  function allRuns(runs, pred) { var v = textRuns(runs); return v.length > 0 && v.every(pred); }
+  function anyRun(runs, pred) { return textRuns(runs).some(pred); }
+  function runsText(runs) { return runs.map(function (r) { return r.text; }).join(''); }
+  function maxSize(runs) { var m = null; textRuns(runs).forEach(function (r) { if (r.size && (m === null || r.size > m)) m = r.size; }); return m; }
+
+  function trimRuns(runs) {
+    // removes whitespace at the start and end of a paragraph (never inside it)
+    var out = runs.map(function (r) { return Object.assign({}, r); });
+    while (out.length && !out[0].image && !out[0].text.replace(/[\s\u00a0]/g, '') ) out.shift();
+    while (out.length && !out[out.length - 1].image && !out[out.length - 1].text.replace(/[\s\u00a0]/g, '')) out.pop();
+    if (out.length && !out[0].br) out[0].text = out[0].text.replace(/^[ \t]+/, '');
+    if (out.length && !out[out.length - 1].br) out[out.length - 1].text = out[out.length - 1].text.replace(/[ \t]+$/, '');
+    return out;
+  }
+
+  function mergeRuns(runs) {
+    var out = [];
+    runs.forEach(function (r) {
+      var last = out[out.length - 1];
+      if (last && !last.br && !r.br && !last.image && !r.image && !!last.emoji === !!r.emoji &&
+          last.b === r.b && last.i === r.i && last.u === r.u && last.s === r.s && last.href === r.href && !!last.sup === !!r.sup) {
+        last.text += r.text;
+      } else out.push(Object.assign({}, r));
+    });
+    return out;
+  }
+
+  // style: { wrap(textHtml, run) -> html, link(href, innerHtml) -> html, underline: bool, forceNoBold, forceItalic }
+  function renderRuns(runs, style) {
+    runs = mergeRuns(runs.filter(function (r) { return !r.image; }));
+    var html = '';
+    var i = 0;
+    while (i < runs.length) {
+      var r = runs[i];
+      if (r.br) { html += '<br>'; i++; continue; }
+      if (r.href) {
+        var group = [];
+        while (i < runs.length && runs[i].href === r.href && !runs[i].br) { group.push(runs[i]); i++; }
+        var gtext = runsText(group);
+        if (!gtext.replace(/[\s\u00a0\u200b]/g, '')) { html += escapeText(gtext); continue; }
+        // keep spaces at the edges of a link outside the link
+        var lead = gtext.match(/^[ \u00a0]*/)[0], tail = gtext.match(/[ \u00a0]*$/)[0];
+        if (lead) { group[0] = Object.assign({}, group[0], { text: group[0].text.slice(lead.length) }); }
+        if (tail) { var g = group[group.length - 1]; group[group.length - 1] = Object.assign({}, g, { text: g.text.slice(0, g.text.length - tail.length) }); }
+        var inner = group.filter(function (x) { return x.text; }).map(function (x) { return renderOne(x, style); }).join('');
+        html += escapeText(lead) + style.link(r.href, inner) + escapeText(tail);
+        continue;
+      }
+      html += renderOne(r, style);
+      i++;
+    }
+    return html;
+  }
+  function renderOne(r, style) {
+    var t = escapeText(r.text);
+    if (!r.text.replace(/[\s\u00a0]/g, '')) return t; // plain spaces need no styling
+    var out = style.wrap(t, r);
+    if (r.emoji) return out;
+    if (r.u && style.underline !== false) out = '<span style="text-decoration:underline;">' + out + '</span>';
+    if (r.s) out = '<s>' + out + '</s>';
+    if (r.sup) out = '<sup>' + out + '</sup>';
+    if ((r.i || style.forceItalic) && !style.noItalic) out = '<em>' + out + '</em>';
+    if (r.b && !style.noBold) out = '<strong>' + out + '</strong>';
+    return out;
+  }
+
+  function sourceLinks(runs) {
+    var links = [];
+    var i = 0;
+    runs = mergeRuns(runs.filter(function (r) { return !r.image; }));
+    while (i < runs.length) {
+      var r = runs[i];
+      if (r.href && !r.br) {
+        var group = [];
+        while (i < runs.length && runs[i].href === r.href && !runs[i].br) { group.push(runs[i]); i++; }
+        if (runsText(group).replace(/[\s\u00a0\u200b]/g, '')) links.push({ href: r.href, text: normalizeForCompare(runsText(group)) });
+        continue;
+      }
+      i++;
+    }
+    return links;
+  }
+
+  // ------------------------------------------------------------------
+  // 6. Newsletter: Repro Health Digest and Transgender Rights Digest
+  //    Output = the one content block Brittany pastes (title through the
+  //    last story). Banner, date, intro, sign-off and footer stay in Mailchimp.
+  // ------------------------------------------------------------------
+  var LATO = "font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+  var DIGEST_STYLE = {
+    wrap: function (t) { return '<span style="font-size: 15px"><span style="' + LATO + '">' + t + '</span></span>'; },
+    link: function (href, inner) { return '<a href="' + escapeAttr(href) + '">' + inner + '</a>'; }
+  };
+  var NAVY = 'color:rgb(5, 36, 96);';
+  var P_HEAD = 'line-height: 1.38; margin-top: 0pt; margin-bottom: 0pt; mso-line-height-alt: 138%;';
+  var P_JUST = 'line-height: 1.38; text-align: justify; margin-top: 0pt; margin-bottom: 0pt; mso-line-height-alt: 138%;';
+  var P_OPT = 'line-height: 1.25; margin-top: 0pt; margin-bottom: 0pt; mso-line-height-alt: 125%;';
+  var SPACER = '<p><br></p>';
+
+  function headerInner(runs) {
+    var st = {
+      wrap: function (t) { return '<span style="' + NAVY + '"><span style="text-decoration:underline;"><span style="font-size: 23px"><span style="' + LATO + '">' + t + '</span></span></span></span>'; },
+      link: DIGEST_STYLE.link, underline: false, noBold: true, noItalic: true
+    };
+    return renderRuns(trimRuns(runs), st);
+  }
+
+  function convertDigest(read, kind) {
+    var notes = [], flags = [], roles = [];
+    var items = [];   // classified items in order
+    var signoff = [];
+    var included = []; // runs that count toward the word check, in order
+    var blocks = read.blocks;
+    var stopped = false, sawTitle = false;
+    var region = []; // every pasted paragraph that belongs in the email, read before any sorting
+
+    for (var bi = 0; bi < blocks.length; bi++) {
+      var b = blocks[bi];
+      if (b.tag === 'hr') { roles.push({ role: 'skip', label: 'Line', text: '(horizontal line)', note: 'Lines are not used in the Digest' }); continue; }
+      if (b.empty) { roles.push({ role: 'empty' }); continue; }
+      var txt = normalizeForCompare(b.text);
+      if (stopped) { signoff.push(txt); roles.push({ role: 'signoff', label: 'Sign-off', text: txt }); continue; }
+      if (/^please sign the digest/i.test(txt)) {
+        stopped = true; roles.push({ role: 'signoff', label: 'Sign-off note', text: txt }); continue;
+      }
+      region.push(b.runs);
+      var runs = trimRuns(b.runs);
+      var isHeadingTag = /^h[1-6]$/.test(b.tag) || b.heading;
+      var imgs = b.runs.filter(function (r) { return r.image; });
+      if (imgs.length) flags.push('An image in "' + shorten(txt || imgs[0].alt, 60) + '" was left out. Add images in Mailchimp.');
+      if (anyRun(runs, function (r) { return r.bg; })) flags.push('Highlighted text in "' + shorten(txt, 60) + '". The highlight was dropped. Check it isn\'t a note to the team.');
+      if (anyRun(runs, function (r) { return r.s; })) flags.push('Crossed-out text in "' + shorten(txt, 60) + '". It is still in the email. Check whether it should be deleted in the Doc.');
+
+      if (b.tag !== 'li' || b.level === 0) {
+        if (!sawTitle) {
+          sawTitle = true;
+          items.push({ kind: 'title', runs: runs });
+          roles.push({ role: 'title', label: 'Title', text: txt });
+          if (!isHeadingTag && !allRuns(runs, function (r) { return r.b; })) flags.push('The first line, "' + shorten(txt, 50) + '", became the title. Make sure the paste starts at the title.');
+          continue;
+        }
+        var allBU = allRuns(runs, function (r) { return r.b && r.u; });
+        var allU = allRuns(runs, function (r) { return r.u; });
+        if (isHeadingTag || allBU || (allU && txt.length < 80)) {
+          items.push({ kind: 'header', runs: runs });
+          roles.push({ role: 'header', label: 'Section', text: txt });
+          continue;
+        }
+        // "\ud83d\udea8Action Alert: The coalition is..." -> header + paragraph
+        var vr = visibleRuns(runs);
+        var lead = 0;
+        while (lead < vr.length && (vr[lead].emoji || (vr[lead].b && vr[lead].u))) lead++;
+        if (lead > 0 && lead < vr.length && vr.slice(0, lead).some(function (r) { return !r.emoji; })) {
+          var cut = runs.indexOf(vr[lead]);
+          var headRuns = trimRuns(runs.slice(0, cut));
+          var restRuns = trimRuns(runs.slice(cut));
+          if (normalizeForCompare(runsText(headRuns)).length < 80) {
+            items.push({ kind: 'header', runs: headRuns });
+            items.push({ kind: 'para', runs: restRuns });
+            roles.push({ role: 'header', label: 'Section', text: normalizeForCompare(runsText(headRuns)) });
+            roles.push({ role: 'para', label: 'Paragraph', text: normalizeForCompare(runsText(restRuns)) });
+            notes.push('"' + shorten(runsText(headRuns), 40) + '" starts a paragraph in the Doc. It was set as a section heading, with the rest of the paragraph below it.');
+            continue;
+          }
+        }
+        if (/\ud83d\udccc/.test(b.text)) {
+          items.push({ kind: 'optout', runs: runs });
+          roles.push({ role: 'optout', label: 'Opt-out line', text: txt });
+          continue;
+        }
+        if (allRuns(runs, function (r) { return r.b; }) && txt.length < 60 && !/[.?!]$/.test(txt)) {
+          flags.push('"' + shorten(txt, 60) + '" is bold but not underlined, so it was set as a paragraph. If it is a section heading, underline it in the Doc.');
+          roles.push({ role: 'para', label: 'Paragraph', text: txt, flag: true });
+        } else roles.push({ role: 'para', label: 'Paragraph', text: txt });
+        if (b.tag === 'li') flags.push('"' + shorten(txt, 50) + '" is a bullet with no level. It was set as a paragraph.');
+        items.push({ kind: 'para', runs: runs });
+        continue;
+      }
+
+      // bullets
+      var bold = allRuns(runs, function (r) { return r.b; });
+      if (b.level === 1 && (bold || b.heading)) {
+        items.push({ kind: 'story', runs: runs });
+        roles.push({ role: 'story', label: 'Story title', text: txt });
+        continue;
+      }
+      var depth = b.level;
+      var prevStory = null;
+      for (var q = items.length - 1; q >= 0; q--) {
+        if (items[q].kind === 'story') { prevStory = items[q]; break; }
+        if (items[q].kind !== 'bullet') break;
+      }
+      if (!prevStory) {
+        flags.push('The bullet "' + shorten(txt, 50) + '" has no bold story title above it. It was set as a story title. If that is wrong, bold the title above it in the Doc.');
+        items.push({ kind: 'story', runs: runs });
+        roles.push({ role: 'story', label: 'Story title', text: txt, flag: true });
+        continue;
+      }
+      if (depth < 2) {
+        depth = 2;
+        prevStory.nestNote = true;
+      }
+      items.push({ kind: 'bullet', runs: runs, depth: depth });
+      roles.push({ role: 'bullet', label: 'Bullet', depth: depth, text: txt });
+    }
+
+    var nested = items.filter(function (it) { return it.kind === 'story' && it.nestNote; });
+    nested.forEach(function (s) { notes.push('Bullets under "' + shorten(runsText(s.runs), 50) + '" were at the same indent as the title in the Doc. They were indented under it.'); });
+
+    // ---- build the HTML ----
+    var out = [];
+    var lastTop = null;
+    var i = 0;
+    while (i < items.length) {
+      var it = items[i];
+      if (it.kind === 'title') {
+        out.push('<h1 style="text-align: left;">' + headerInner(it.runs) + '</h1>');
+        lastTop = 'title'; included.push(it.runs); i++; continue;
+      }
+      if (it.kind === 'header') {
+        if (out.length) out.push(SPACER);
+        out.push('<p style="' + P_HEAD + '"><strong>' + headerInner(it.runs) + '</strong></p>');
+        lastTop = 'header'; included.push(it.runs); i++; continue;
+      }
+      if (it.kind === 'para' || it.kind === 'optout') {
+        if (out.length && lastTop !== 'title' && lastTop !== 'header') out.push(SPACER);
+        var stl = it.kind === 'optout' ? P_OPT : P_JUST;
+        out.push('<p style="' + stl + '">' + renderRuns(it.runs, DIGEST_STYLE) + '</p>');
+        lastTop = it.kind; included.push(it.runs); i++; continue;
+      }
+      // a run of stories -> one <ul>
+      if (lastTop !== 'header' && lastTop !== 'para' && out.length) out.push(SPACER);
+      var stories = [];
+      while (i < items.length && (items[i].kind === 'story' || items[i].kind === 'bullet')) {
+        if (items[i].kind === 'story') stories.push({ title: items[i], bullets: [] });
+        else stories[stories.length - 1].bullets.push(items[i]);
+        i++;
+      }
+      var html = '<ul>';
+      stories.forEach(function (s, si) {
+        var last = si === stories.length - 1;
+        included.push(s.title.runs);
+        html += '<li><p>' + renderRuns(s.title.runs, DIGEST_STYLE) + '</p>';
+        s.bullets.forEach(function (bl) { included.push(bl.runs); });
+        html += renderBulletTree(s.bullets, 2, last ? '' : SPACER);
+        if (!s.bullets.length && !last) html += SPACER;
+        html += '</li>';
+      });
+      html += '</ul>';
+      out.push(html);
+      lastTop = 'list';
+    }
+
+    // ---- newsletter-specific sanity checks ----
+    var allText = blocks.map(function (b) { return b.text; }).join(' ');
+    var allHrefs = [];
+    blocks.forEach(function (b) { b.runs.forEach(function (r) { if (r.href) allHrefs.push(r.href); }); });
+    var hrefs = allHrefs.join(' ');
+    if (kind === 'repro' && (/opt-out-trans-digest/.test(hrefs) || /Transgender Rights Digest/.test(allText)) && !/Reproductive Health Digest|Repro Health Digest/.test(allText)) {
+      flags.unshift('This looks like the Trans Digest, but Repro Digest is selected.');
+    }
+    if (kind === 'trans' && (/opt-out-repro-digest/.test(hrefs) || /Repro(ductive)? Health Digest/.test(allText)) && !/Transgender Rights Digest/.test(allText)) {
+      flags.unshift('This looks like the Repro Digest, but Trans Digest is selected.');
+    }
+    if (!items.some(function (x) { return x.kind === 'optout'; })) flags.push('No opt-out line (\ud83d\udccc) was found.');
+    var title = items.find(function (x) { return x.kind === 'title'; });
+    if (title && /:\s*$/.test(runsText(title.runs))) notes.push('The title ends with a colon in the Doc, so it ends with a colon in the email. Delete it in the Doc if you don\'t want it.');
+    if (signoff.length) notes.push('The sign-off at the end of the Doc is not part of this block. It goes in the sign-off block in Mailchimp.');
+
+    return { html: out.join('\n'), included: region, notes: notes, flags: flags, roles: roles, signoff: signoff };
+  }
+
+  function renderBulletTree(bullets, depth, trailing) {
+    if (!bullets.length) return '';
+    // bullets: [{runs, depth}] -> nested <ul>
+    var html = '<ul>';
+    var i = 0;
+    var tops = [];
+    while (i < bullets.length) {
+      var node = { b: bullets[i], kids: [] };
+      i++;
+      while (i < bullets.length && bullets[i].depth > depth) { node.kids.push(bullets[i]); i++; }
+      tops.push(node);
+    }
+    tops.forEach(function (n, k) {
+      html += '<li><p>' + renderRuns(n.b.runs, DIGEST_STYLE) + '</p>';
+      if (n.kids.length) {
+        var nextDepth = Math.min.apply(null, n.kids.map(function (x) { return x.depth; }));
+        html += renderBulletTree(n.kids, nextDepth, '');
+      }
+      if (k === tops.length - 1 && trailing) html += trailing;
+      html += '</li>';
+    });
+    return html + '</ul>';
+  }
+
+  // ------------------------------------------------------------------
+  // 7. Newsletter: Impact Docket (content middle only; the banner and the
+  //    "We'll be back next week" sign-off stay in Mailchimp)
+  // ------------------------------------------------------------------
+  var DM = "font-family:'DM Sans', sans-serif";
+  function dmStyle(px) {
+    return {
+      wrap: function (t) { return '<span style="font-size:' + px + 'px"><span style="' + DM + '">' + t + '</span></span>'; },
+      link: function (href, inner) { return '<a href="' + escapeAttr(href) + '" target="_blank" style="color:#EE6352;">' + inner + '</a>'; },
+      underline: true
+    };
+  }
+  var D_DIV = '<p style="border-bottom:2px solid #000000; font-size:0; line-height:0; margin:0 0 12pt 0;">&nbsp;</p>';
+  var D_BR = '<p><br></p>';
+  var D_TOP = 'line-height:1.25; mso-line-height-alt:125%;';
+  var D_BODY = 'line-height:1.25; margin-top:12pt; margin-bottom:12pt; mso-line-height-alt:125%;';
+  var D_PIN = 'line-height:1.25; margin-top:0; margin-bottom:0;';
+
+  function splitEmojiLabel(runs, px, underlineLabel) {
+    // "\u26a1 QUICK ACTIONS" -> emoji kept plain, label underlined
+    var st = dmStyle(px); st.noBold = true; st.noItalic = true; st.underline = false;
+    var t = runsText(runs);
+    var m = t.match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|\u200d|\ufe0f|\u20e3)+)(\s*)/u);
+    var labelRuns = runs;
+    var emo = '';
+    if (m) {
+      emo = m[1] + m[2];
+      // remove the emoji characters from the runs
+      var remove = emo.length;
+      labelRuns = [];
+      runs.forEach(function (r) {
+        if (remove > 0) {
+          if (r.text.length <= remove) { remove -= r.text.length; return; }
+          labelRuns.push(Object.assign({}, r, { text: r.text.slice(remove) })); remove = 0;
+        } else labelRuns.push(r);
+      });
+    }
+    var label = renderRuns(labelRuns, st);
+    if (underlineLabel) label = '<span style="text-decoration:underline;">' + label + '</span>';
+    return (emo ? st.wrap(escapeText(emo)) : '') + label;
+  }
+
+  function convertDocket(read) {
+    var notes = [], flags = [], roles = [], included = [];
+    var blocks = [];
+    // Word sometimes keeps an action title and its \ud83d\udccd line in one paragraph
+    read.blocks.forEach(function (b) {
+      var brAt = b.runs.findIndex(function (r, k) { return r.br && b.runs.slice(k + 1).map(function (x) { return x.text; }).join('').trim().indexOf('\ud83d\udccd') === 0; });
+      if (brAt > 0) {
+        var a = b.runs.slice(0, brAt), c = b.runs.slice(brAt + 1);
+        blocks.push(Object.assign({}, b, { runs: a, text: runsText(a) }));
+        blocks.push(Object.assign({}, b, { runs: c, text: runsText(c) }));
+        notes.push('A title and its \ud83d\udccd line shared one paragraph in the Doc. They were split into two lines.');
+      } else blocks.push(b);
+    });
+
+    var started = false, inTop = true, stopped = false;
+    var region = [];
+    var items = [];
+    var greetIdx = blocks.findIndex(function (b) { return /^Hi \*\|FNAME\|\*/.test(normalizeForCompare(b.text)); });
+    if (greetIdx < 0) { flags.push('No "Hi *|FNAME|*," greeting was found, so the email starts at the first line pasted.'); started = true; }
+
+    for (var bi = 0; bi < blocks.length; bi++) {
+      var b = blocks[bi];
+      var txt = normalizeForCompare(b.text);
+      if (!started) {
+        if (bi === greetIdx) { started = true; }
+        else { if (!b.empty) roles.push({ role: 'skip', label: 'Not in email', text: txt }); continue; }
+      }
+      if (stopped) { if (!b.empty) roles.push({ role: 'skip', label: 'Sign-off (in Mailchimp)', text: txt }); continue; }
+      if (/^We[\u2019']ll be back/.test(txt)) { stopped = true; roles.push({ role: 'skip', label: 'Sign-off (in Mailchimp)', text: txt }); continue; }
+      if (b.tag === 'hr') { if (items.length) items.push({ kind: 'div' }); continue; }
+      if (b.empty) { roles.push({ role: 'empty' }); continue; }
+      if (/^\[VERSION/i.test(txt)) flags.push('The Doc has a version label ("' + shorten(txt, 30) + '"). Delete the version you are not sending, and the label, before converting.');
+      if (b.runs.some(function (r) { return r.image; })) flags.push('An image in "' + shorten(txt, 50) + '" was left out.');
+      if (anyRun(b.runs, function (r) { return r.bg; })) flags.push('Highlighted text in "' + shorten(txt, 60) + '". The highlight was dropped. Check it isn\'t a note to the team.');
+      region.push(b.runs);
+      var runs = trimRuns(b.runs);
+
+      if (b.tag === 'li' && b.level > 0) {
+        var kind = b.ordered ? 'ol' : 'ul';
+        var last = items[items.length - 1];
+        if (last && last.kind === kind && last.listId === b.listId) last.items.push({ runs: runs, level: b.level });
+        else items.push({ kind: kind, listId: b.listId, inTop: inTop, items: [{ runs: runs, level: b.level }] });
+        roles.push({ role: 'bullet', label: b.ordered ? 'Step' : 'Bullet', depth: b.level, text: txt });
+        included.push(runs);
+        continue;
+      }
+      var size = maxSize(runs) || 11;
+      var k;
+      if (bi === greetIdx) k = 'greet';
+      else if (size >= 14.5) { k = 'section'; inTop = false; }
+      else if (size >= 12.5) k = 'title';
+      else if (txt.indexOf('\ud83d\udccd') === 0) k = 'pin';
+      else if (txt.indexOf('\ud83d\udccc') === 0) k = 'optout';
+      else if (inTop && allRuns(runs, function (r) { return r.b; }) && txt.length < 90 && !/^This week/.test(txt)) k = 'mini';
+      else k = inTop ? 'top' : 'body';
+      if (k === 'section' && items.length && items[items.length - 1].kind !== 'div') items.push({ kind: 'div' });
+      items.push({ kind: k, runs: runs });
+      included.push(runs);
+      var labels = { greet: 'Greeting', section: 'Section', title: 'Action title', pin: '\ud83d\udccd line', optout: 'Opt-out line', mini: 'Topline heading', top: 'Topline', body: 'Paragraph' };
+      roles.push({ role: k === 'section' ? 'header' : (k === 'title' ? 'story' : 'para'), label: labels[k], text: txt });
+    }
+    while (items.length && items[items.length - 1].kind === 'div') items.pop();
+    if (!stopped) notes.push('The "We\'ll be back next week" line wasn\'t found, so everything after the greeting was converted. Make sure the paste doesn\'t include the sign-off.');
+
+    var h = [];
+    var S15 = dmStyle(15);
+    items.forEach(function (it, idx) {
+      var nxt = items[idx + 1] ? items[idx + 1].kind : null;
+      switch (it.kind) {
+        case 'greet':
+        case 'top':
+          h.push('<p style="' + D_TOP + '">' + renderRuns(it.runs, S15) + '</p>'); h.push(D_BR); break;
+        case 'mini':
+          h.push('<h4 style="' + D_TOP + '"><strong>' + splitEmojiLabel(it.runs, 15, true) + '</strong></h4>'); break;
+        case 'section':
+          h.push('<p style="margin-top:0; margin-bottom:0;"><strong>' + splitEmojiLabel(it.runs, 20, true) + '</strong></p>');
+          if (nxt === 'title') h.push(D_BR);
+          break;
+        case 'title':
+          var tst = dmStyle(17); tst.noBold = true;
+          h.push('<h4 style="line-height:1.25; margin-top:0; margin-bottom:4pt;"><strong>' + renderRuns(it.runs, tst) + '</strong></h4>'); break;
+        case 'pin':
+          h.push('<p style="' + D_PIN + '">' + renderRuns(it.runs, S15) + '</p>'); break;
+        case 'optout':
+          var ost = dmStyle(15); ost.forceItalic = true;
+          h.push('<p style="line-height:1.25; margin-bottom:12pt; mso-line-height-alt:125%;">' + renderRuns(it.runs, ost) + '</p>'); break;
+        case 'body':
+          h.push('<p style="' + D_BODY + '">' + renderRuns(it.runs, S15) + '</p>'); break;
+        case 'div':
+          h.push(D_DIV); break;
+        case 'ul':
+          var ulStyle = DM + '; font-size:15px; line-height:1.25; mso-line-height-alt:125%;' + (it.inTop ? '' : ' margin-top:0; margin-bottom:12pt;');
+          h.push(renderDocketList(it.items, '<ul style="' + ulStyle + '">', '</ul>'));
+          if (it.inTop) h.push(D_BR);
+          break;
+        case 'ol':
+          var lis = it.items.map(function (x, n) {
+            var st = n === 0 ? 'line-height:1.25; margin-top:12pt;' : 'line-height:1.25;';
+            return '<li style="' + st + '"><p>' + renderRuns(x.runs, S15) + '</p></li>';
+          }).join('');
+          h.push('<ol style="margin-top:0; margin-bottom:12pt; padding-inline-start:48px; ' + DM + '; font-size:15px; color:#000;">' + lis + '</ol>');
+          break;
+      }
+    });
+    return { html: h.join('\n'), included: region, notes: notes, flags: flags, roles: roles, signoff: [] };
+  }
+  function renderDocketList(list, open, close) {
+    var S15 = dmStyle(15);
+    var base = Math.min.apply(null, list.map(function (x) { return x.level; }));
+    var html = open;
+    var i = 0;
+    while (i < list.length) {
+      var x = list[i]; i++;
+      var kids = [];
+      while (i < list.length && list[i].level > base) { kids.push(list[i]); i++; }
+      html += '<li><p>' + renderRuns(x.runs, S15) + '</p>';
+      if (kids.length) html += renderDocketList(kids, '<ul>', '</ul>');
+      html += '</li>';
+    }
+    return html + close;
+  }
+
+  // ------------------------------------------------------------------
+  // 8. The word-for-word check. Re-reads the finished HTML and compares it
+  //    with the pasted Doc. Runs on every conversion.
+  // ------------------------------------------------------------------
+  // text of an element, with a space between paragraphs and bullets
+  function blockText(root) {
+    var parts = [];
+    (function walk(n) {
+      if (n.nodeType === 3) { parts.push(n.data); return; }
+      if (n.nodeType !== 1) return;
+      var blk = /^(P|LI|UL|OL|H[1-6]|DIV|BR|TABLE|TR|TD)$/.test(n.tagName);
+      if (blk) parts.push(' ');
+      for (var c = n.firstChild; c; c = c.nextSibling) walk(c);
+      if (blk) parts.push(' ');
+    })(root);
+    return parts.join('');
+  }
+
+  function verify(result) {
+    var srcText = normalizeForCompare(result.included.map(function (runs) {
+      return runs.filter(function (r) { return !r.image; }).map(function (r) { return r.br ? ' ' : r.text; }).join('');
+    }).join(' '));
+    var srcLinks = [];
+    result.included.forEach(function (runs) { srcLinks = srcLinks.concat(sourceLinks(runs)); });
+    var srcItalic = normalizeForCompare(result.included.map(function (runs) {
+      return runs.filter(function (r) { return r.i && !r.emoji; }).map(function (r) { return r.text; }).join(' ');
+    }).join(' '));
+
+    var out = new DOMParser().parseFromString('<body>' + result.html + '</body>', 'text/html');
+    var outText = normalizeForCompare(blockText(out.body));
+    var outLinks = Array.prototype.map.call(out.querySelectorAll('a'), function (a) { return { href: a.getAttribute('href'), text: normalizeForCompare(a.textContent) }; });
+    var outItalic = normalizeForCompare(Array.prototype.map.call(out.querySelectorAll('em,i'), function (e) {
+      return e.textContent;
+    }).join(' '));
+
+    var textOk = srcText === outText;
+    var diff = null;
+    if (!textOk) {
+      var n = 0;
+      while (n < srcText.length && srcText[n] === outText[n]) n++;
+      diff = { doc: srcText.slice(Math.max(0, n - 40), n + 40), email: outText.slice(Math.max(0, n - 40), n + 40) };
+    }
+    var linkProblems = [];
+    var max = Math.max(srcLinks.length, outLinks.length);
+    for (var i = 0; i < max; i++) {
+      var s = srcLinks[i], o = outLinks[i];
+      if (!s || !o || s.href !== o.href || s.text !== o.text) {
+        linkProblems.push({ doc: s ? s.text + ' \u2192 ' + s.href : '(none)', email: o ? o.text + ' \u2192 ' + o.href : '(none)' });
+      }
+    }
+    // italics: the Docket opt-out line is always italic, so only check italics the Doc has
+    var italicOk = outItalic.indexOf(srcItalic) !== -1 || srcItalic === outItalic || (srcItalic.split(' ').every(function (w) { return !w || outItalic.indexOf(w) !== -1; }));
+    var words = srcText ? srcText.split(' ').length : 0;
+    var bytes = new Blob([result.html]).size;
+    return {
+      textOk: textOk, diff: diff, words: words,
+      linksOk: linkProblems.length === 0, linkCount: srcLinks.length, linkProblems: linkProblems.slice(0, 5),
+      italicOk: italicOk, italicWords: srcItalic ? srcItalic.split(' ').length : 0,
+      bytes: bytes
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 9. Entry point
+  // ------------------------------------------------------------------
+  function convert(html, newsletter) {
+    var read = readDocument(html);
+    var res;
+    if (newsletter === 'docket') res = convertDocket(read);
+    else res = convertDigest(read, newsletter);
+    if (read.events.comments) res.notes.push('Comment markers from the Doc were left out (' + read.events.comments + ').');
+    if (read.events.footnotes) res.flags.push('The Doc has footnotes. Footnotes are not carried into the email.');
+    if (read.events.tables) res.flags.push('The Doc has a table. Its text was converted as plain paragraphs. Check the layout.');
+    res.check = verify(res);
+    res.blockCount = read.blocks.filter(function (b) { return !b.empty; }).length;
+    return res;
+  }
+
+  global.L4GGConvert = { convert: convert, readDocument: readDocument, version: '1.0' };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var HOWTO = {
+    repro: '<b>In the Google Doc</b>, click in the text and press <kbd>\u2318</kbd> <kbd>A</kbd> then <kbd>\u2318</kbd> <kbd>C</kbd>. Paste below. <b>In Mailchimp</b>, replicate the last Repro Digest, click the block that starts \u201cDevelopments in Abortion\u2026\u201d, open <b>Code</b>, select all, and paste. The banner, \u201cHi there\u201d intro, sign-off and footer stay as they are.',
+    trans: '<b>In the Google Doc</b>, open this issue\u2019s tab, click in the text and press <kbd>\u2318</kbd> <kbd>A</kbd> then <kbd>\u2318</kbd> <kbd>C</kbd>. Paste below. <b>In Mailchimp</b>, replicate the last Trans Digest, click the block that starts \u201cDevelopments in Transgender Rights\u2026\u201d, open <b>Code</b>, select all, and paste. Update the date line and sign-off blocks yourself.',
+    docket: '<b>In the Google Doc</b>, click in the text and press <kbd>\u2318</kbd> <kbd>A</kbd> then <kbd>\u2318</kbd> <kbd>C</kbd>. The converter starts at \u201cHi *|FNAME|*,\u201d and stops before \u201cWe\u2019ll be back next week\u201d. <b>In Mailchimp</b>, replicate the last Docket, click the first text block under the banner, open <b>Code</b>, select all, and paste. Replace the banner with <b>Replace image</b>.'
+  };
+  // Example so the page shows what it does before anything is pasted. Placeholder text only.
+  var SAMPLE = {
+    digest: '<b style="font-weight:normal"><p><span style="font-size:14pt;font-weight:700;text-decoration:underline">Developments in Example Topic:</span></p><br><p><span style="font-size:14pt">This week\u2019s Digest is an example. Paste your own Doc to replace it. </span></p><br><p><span style="font-size:14pt;font-weight:700">Want access to a detailed analysis? </span><span style="font-size:14pt">Please view our free </span><a href="https://example.org/hub"><span style="font-size:14pt">Policy Resource Hub</span></a><span style="font-size:14pt">.</span></p><br><p><span style="font-style:italic">\ud83d\udccc If you\u2019d rather not receive this newsletter, you can opt out </span><a href="https://example.org/opt-out"><span style="font-style:italic">here</span></a><span style="font-style:italic">.</span></p><br><p><span style="font-size:14pt;font-weight:700;text-decoration:underline">Legislation &amp; Litigation:</span></p><ul><li aria-level="1"><p><span style="font-weight:700;text-decoration:underline">Overview</span></p></li><ul><li aria-level="2"><p><span>A one-line summary of the first story;</span></p></li><li aria-level="2"><p><span>A one-line summary of the second story.</span></p></li></ul><li aria-level="1"><p><span style="font-weight:700;text-decoration:underline">Each Story Has a Bold Title:</span></p></li><ul><li aria-level="2"><p><span>A bullet with a </span><a href="https://example.org/source"><span>link</span></a><span> and a case name in italics, </span><span style="font-style:italic">Example v. Sample</span><span>.</span></p></li></ul></ul></b>',
+    docket: '<b style="font-weight:normal"><p><span>Hi *|FNAME|*,</span></p><p><span style="font-weight:700">This week demands action. Here are 2 ways you can push back right now:</span></p><p><span style="font-weight:700">\u26a1 Quick Actions</span></p><ul><li><p><span style="font-weight:700">Example action \u2192 </span><a href="https://example.org/a"><span style="font-weight:700">Take the example action</span></a></p></li></ul><p><span style="font-style:italic">\ud83d\udccc If you\u2019d rather not receive the weekly Impact Docket, you can opt out </span><a href="https://example.org/opt-out"><span style="font-style:italic">here</span></a><span style="font-style:italic">.</span></p><p><span style="font-size:15pt;font-weight:700">\u26a1 QUICK ACTIONS</span></p><p><span style="font-size:13pt;font-weight:700">\ud83d\udcdc Example Action Title</span></p><p><span>\ud83d\udccd </span><a href="https://example.org/a"><span>example.org/a</span></a></p><p><span>One paragraph explaining the example action.</span></p><p><span>We\u2019ll be back next week with more ways to take action.</span></p></b>'
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { nl: 'repro', html: null, sample: true, result: null, view: 'desk' };
+  try { var saved = localStorage.getItem('l4gg-nl'); if (saved && HOWTO[saved]) state.nl = saved; } catch (e) {}
+  $('ver').textContent = L4GGConvert.version;
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  function setNl(nl) {
+    state.nl = nl;
+    try { localStorage.setItem('l4gg-nl', nl); } catch (e) {}
+    document.querySelectorAll('.picker button[data-nl]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.nl === nl)); });
+    $('howto').innerHTML = HOWTO[nl];
+    if (state.sample) state.html = nl === 'docket' ? SAMPLE.docket : SAMPLE.digest;
+    run();
+  }
+
+  function plainToHtml(text) {
+    return text.split(/\r?\n/).map(function (l) { return '<p>' + esc(l) + '</p>'; }).join('');
+  }
+
+  function run() {
+    var res;
+    try { res = L4GGConvert.convert(state.html, state.nl); }
+    catch (err) { res = null; showError(err); return; }
+    state.result = res;
+    renderOutline(res);
+    renderChecks(res);
+    renderPreview(res);
+  }
+
+  function showError(err) {
+    $('checks').innerHTML = '';
+    $('banner').innerHTML = '<div class="banner bad">The converter hit a problem it doesn\u2019t know how to handle, so it stopped. Nothing was changed. Details: ' + esc(err && err.message || err) + '</div>';
+    $('copy').disabled = true;
+  }
+
+  function renderOutline(res) {
+    var rows = res.roles.filter(function (r) { return r.role !== 'empty'; });
+    $('readcount').textContent = rows.length + ' lines';
+    $('outline').innerHTML = rows.map(function (r) {
+      var cls = 't-' + r.role + (r.depth ? ' d' + r.depth : '') + (r.flag ? ' flagged' : '');
+      return '<li class="' + cls + '"><span class="tag">' + esc(r.label || r.role) + '</span><span class="txt">' + esc(r.text || '') + '</span></li>';
+    }).join('') || '<li class="empty">Nothing to show yet.</li>';
+  }
+
+  function card(cls, k, v) { return '<div class="check ' + cls + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>'; }
+
+  function renderChecks(res) {
+    var c = res.check;
+    var kb = Math.round(c.bytes / 1024);
+    var sizeCls = kb > 62 ? 'bad' : kb > 55 ? 'warn' : 'ok';
+    $('checks').innerHTML =
+      card(c.textOk ? 'ok' : 'bad', 'Words match the Doc', c.textOk ? '\u2713 ' + c.words.toLocaleString() + ' words' : '\u2717 Different') +
+      card(c.linksOk ? 'ok' : 'bad', 'Links match the Doc', c.linksOk ? '\u2713 ' + c.linkCount + ' links' : '\u2717 ' + c.linkProblems.length + ' differ') +
+      card(c.italicOk ? 'ok' : 'warn', 'Italics kept', c.italicOk ? '\u2713 ' + c.italicWords + ' words' : 'Check italics') +
+      card(sizeCls, 'Block size', kb + ' KB' + (sizeCls === 'ok' ? '' : sizeCls === 'warn' ? ' \u00b7 getting long' : ' \u00b7 may clip in Gmail'));
+    var banner = '';
+    if (!c.textOk) banner += '<div class="banner bad">Don\u2019t use this HTML. The words don\u2019t match the Doc at this spot:<pre>Doc:   \u2026' + esc(c.diff.doc) + '\u2026\nEmail: \u2026' + esc(c.diff.email) + '\u2026</pre></div>';
+    if (!c.linksOk) banner += '<div class="banner bad">Don\u2019t use this HTML. These links don\u2019t match the Doc:<pre>' + c.linkProblems.map(function (p) { return 'Doc:   ' + esc(p.doc) + '\nEmail: ' + esc(p.email); }).join('\n\n') + '</pre></div>';
+    if (state.sample) banner = '<div class="banner" style="background:var(--warn-soft);color:var(--warn)"><span class="sample-tag">Example</span> This is placeholder text so you can see how it works. Paste your Doc on the left to start.</div>' + banner;
+    $('banner').innerHTML = banner;
+    var msgs = '';
+    if (state.plain && !state.sample) msgs += '<div class="msg flag">This came in as plain text, so bold, italics, links and bullets were lost. Copy straight from the Google Doc and paste again.</div>';
+    res.flags.forEach(function (f) { msgs += '<div class="msg flag">' + esc(f) + '</div>'; });
+    res.notes.forEach(function (n) { msgs += '<div class="msg note">' + esc(n) + '</div>'; });
+    if (res.signoff && res.signoff.length) msgs += '<div class="msg sign"><b>Sign-off from the Doc</b> (for the sign-off block in Mailchimp):<pre>' + esc(res.signoff.join('\n')) + '</pre></div>';
+    $('msgs').innerHTML = msgs;
+    $('copy').disabled = !(c.textOk && c.linksOk) || state.sample;
+    $('copy').title = state.sample ? 'Paste your Doc first' : (!(c.textOk && c.linksOk) ? 'Fix the problem above first' : '');
+  }
+
+  var shadow = $('preview').attachShadow ? $('preview').attachShadow({ mode: 'open' }) : null;
+  function renderPreview(res) {
+    var css = '<style>:host{display:block;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#000;overflow-wrap:anywhere}' +
+      'p{margin:0 0 10px}h1{margin:0 0 10px;font-size:23px}h4{margin:0}ul,ol{margin:0 0 10px;padding-left:28px}li>p{margin:0 0 4px}a{color:#2a7ab9}</style>';
+    if (shadow) shadow.innerHTML = css + res.html; else $('preview').innerHTML = res.html;
+    $('code').value = res.html;
+  }
+
+  function setView(v) {
+    state.view = v;
+    $('tab-desk').setAttribute('aria-selected', String(v === 'desk'));
+    $('tab-mob').setAttribute('aria-selected', String(v === 'mob'));
+    $('tab-code').setAttribute('aria-selected', String(v === 'code'));
+    $('stage').hidden = v === 'code';
+    $('code').hidden = v !== 'code';
+    $('preview').classList.toggle('mobile', v === 'mob');
+  }
+
+  // --- paste: we read the clipboard's formatted copy ourselves and never let the browser edit it ---
+  var pasteBox = $('paste');
+  function takeInput(html, text) {
+    state.plain = !html && !!text;
+    if (!html && text) html = plainToHtml(text);
+    if (!html) return;
+    state.html = html; state.sample = false;
+    pasteBox.classList.add('has');
+    pasteBox.textContent = 'Pasted. Paste again any time to replace it.';
+    run();
+  }
+  pasteBox.addEventListener('paste', function (e) {
+    e.preventDefault();
+    var cd = e.clipboardData || window.clipboardData;
+    takeInput(cd.getData('text/html'), cd.getData('text/plain'));
+  });
+  pasteBox.addEventListener('drop', function (e) {
+    e.preventDefault();
+    takeInput(e.dataTransfer.getData('text/html'), e.dataTransfer.getData('text/plain'));
+  });
+  pasteBox.addEventListener('beforeinput', function (e) { if (e.inputType !== 'insertFromPaste') e.preventDefault(); });
+  pasteBox.addEventListener('keydown', function (e) { if (!(e.metaKey || e.ctrlKey) && e.key.length === 1) e.preventDefault(); });
+
+  $('clear').addEventListener('click', function () {
+    state.sample = true; state.plain = false; state.html = state.nl === 'docket' ? SAMPLE.docket : SAMPLE.digest;
+    pasteBox.classList.remove('has');
+    pasteBox.innerHTML = 'Click here, then press <kbd>\u2318</kbd> <kbd>V</kbd> (or <kbd>Ctrl</kbd> <kbd>V</kbd>)';
+    run();
+  });
+  document.querySelectorAll('.picker button[data-nl]').forEach(function (b) { b.addEventListener('click', function () { setNl(b.dataset.nl); }); });
+  $('tab-desk').addEventListener('click', function () { setView('desk'); });
+  $('tab-mob').addEventListener('click', function () { setView('mob'); });
+  $('tab-code').addEventListener('click', function () { setView('code'); });
+
+  $('copy').addEventListener('click', function () {
+    var html = state.result ? state.result.html : '';
+    function done() { $('copied').hidden = false; setTimeout(function () { $('copied').hidden = true; }, 2200); }
+    function fallback() { setView('code'); var t = $('code'); t.focus(); t.select(); try { if (document.execCommand('copy')) done(); } catch (e) {} }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(html).then(done, fallback);
+    else fallback();
+  });
+
+  setNl(state.nl);
+})();
+</script>
+</body>
+</html>
