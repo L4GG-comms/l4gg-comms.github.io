@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- This page is not allowed to connect to anything: no fonts, no images, no data out. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>L4GG UTM Link Builder</title>
+<style>
+:root {
+  --paper:#f5f7fa; --card:#ffffff; --ink:#14213d; --muted:#5b6577; --line:#dde3ec;
+  --navy:#052460; --cyan:#2a9fd6; --cyan-soft:#e6f4fb; --ok:#1f7a4d; --ok-soft:#e5f4ec;
+  --warn:#8a5a00; --warn-soft:#fff4dc; --bad:#b3261e; --bad-soft:#fdecea;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --display:"Avenir Next","Segoe UI Semibold","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#0c1424; --card:#131e33; --ink:#e6ecf5; --muted:#9aa7bd; --line:#26344f;
+    --navy:#9cc2ff; --cyan:#5cc3ef; --cyan-soft:#12304a; --ok:#6fd3a0; --ok-soft:#12352a;
+    --warn:#f2c66d; --warn-soft:#3a2e12; --bad:#ff8f86; --bad-soft:#3d1a19; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#0c1424; --card:#131e33; --ink:#e6ecf5; --muted:#9aa7bd; --line:#26344f;
+  --navy:#9cc2ff; --cyan:#5cc3ef; --cyan-soft:#12304a; --ok:#6fd3a0; --ok-soft:#12352a;
+  --warn:#f2c66d; --warn-soft:#3a2e12; --bad:#ff8f86; --bad-soft:#3d1a19; color-scheme:dark;
+}
+* { box-sizing:border-box; }
+html, body { margin:0; }
+body { background:var(--paper); color:var(--ink); font:15px/1.55 var(--ui); padding-inline:16px; padding-block:0 56px; }
+.wrap { max-width:980px; margin:0 auto; }
+header.top { display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:12px 24px; padding-block:28px 18px; border-bottom:1px solid var(--line); }
+.home { display:inline-block; margin-bottom:6px; font-size:13px; font-weight:600; color:var(--cyan); text-decoration:none; }
+.home:hover { text-decoration:underline; }
+h1 { margin:0; font:600 26px/1.15 var(--display); letter-spacing:-0.01em; color:var(--navy); }
+header p { margin:6px 0 0; color:var(--muted); max-width:64ch; }
+.lockbadge { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:999px; background:var(--ok-soft); color:var(--ok); font-weight:600; font-size:13px; white-space:nowrap; }
+h2 { font:600 18px/1.3 var(--display); color:var(--navy); margin:30px 0 10px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+
+/* Do I need one? */
+.need { display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); }
+.need div { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+.need b { display:block; font-size:14px; }
+.need span { color:var(--muted); font-size:13.5px; }
+.pill { display:inline-block; font:700 11px var(--ui); text-transform:uppercase; letter-spacing:.06em; padding:2px 8px; border-radius:999px; margin-bottom:4px; }
+.pill.yes { background:var(--cyan-soft); color:var(--navy); }
+.pill.no { background:var(--ok-soft); color:var(--ok); }
+.pill.soon { background:var(--warn-soft); color:var(--warn); }
+
+/* Form */
+.fields { display:grid; gap:16px; }
+label.f { display:grid; gap:6px; }
+label.f > span { font-weight:600; font-size:14px; }
+label.f small, .hint { color:var(--muted); font-size:13px; }
+input[type=text], input[type=url] { width:100%; font:15px var(--mono); padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); }
+input[type=text]:focus, input[type=url]:focus { outline:3px solid var(--cyan-soft); border-color:var(--cyan); }
+.two { display:grid; gap:16px; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+@media (max-width:640px) { .two { grid-template-columns:minmax(0,1fr); } }
+fieldset { border:0; margin:0; padding:0; }
+legend { font-weight:600; font-size:14px; margin-bottom:8px; padding:0; }
+.chans { display:flex; flex-wrap:wrap; gap:8px; }
+.chan { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:8px; padding:8px 12px; background:var(--card); cursor:pointer; font-size:14px; }
+.chan input { margin:0; accent-color:var(--navy); width:16px; height:16px; }
+.chan:has(input:checked) { border-color:var(--navy); box-shadow:inset 0 0 0 1px var(--navy); }
+.chan.off { color:var(--muted); cursor:not-allowed; background:transparent; border-style:dashed; }
+.chan code { font:600 12px var(--mono); color:var(--muted); }
+.grouplabel { font:700 11px var(--ui); text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:10px 0 6px; }
+
+.msgs { display:grid; gap:8px; margin-top:16px; }
+.msg { border-radius:8px; padding:10px 12px; font-size:14px; }
+.msg.warn { background:var(--warn-soft); color:var(--ink); border-left:4px solid var(--warn); }
+.msg.bad { background:var(--bad-soft); color:var(--ink); border-left:4px solid var(--bad); }
+.msg.ok { background:var(--ok-soft); color:var(--ink); border-left:4px solid var(--ok); }
+
+/* Results */
+.results { display:grid; gap:12px; }
+.res { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; display:grid; gap:10px; }
+.res .who { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; }
+.res .who b { font:600 16px var(--display); color:var(--navy); }
+.res .who span { color:var(--muted); font-size:13px; }
+.row { display:grid; grid-template-columns:118px minmax(0,1fr) auto; gap:8px 12px; align-items:center; }
+@media (max-width:640px) { .row { grid-template-columns:minmax(0,1fr) auto; } .row .k { grid-column:1 / -1; } }
+.row .k { font:700 11px var(--ui); text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+.row .v { font:14px var(--mono); overflow-wrap:anywhere; word-break:break-all; background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:7px 10px; }
+.row .v.short { font-weight:700; color:var(--navy); }
+.btn { font:600 13px var(--ui); border-radius:8px; padding:7px 12px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; white-space:nowrap; text-decoration:none; display:inline-block; }
+.btn.primary { background:var(--navy); border-color:var(--navy); color:var(--card); }
+.btn:focus-visible, .chan:focus-within { outline:3px solid var(--cyan); outline-offset:2px; }
+.btn.done { background:var(--ok-soft); border-color:var(--ok); color:var(--ok); }
+.actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.empty { color:var(--muted); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:18px; text-align:center; }
+
+/* Reference */
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { font:700 11px var(--ui); text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+td code { font:13px var(--mono); }
+.tablewrap { overflow-x:auto; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 8px; }
+ol.steps, ul.rules { margin:0; padding-left:20px; }
+ol.steps li, ul.rules li { margin:4px 0; }
+.soon { color:var(--warn); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <a class="home" href="../">&#x2190; L4GG Comms Tools</a>
+      <h1>UTM Link Builder</h1>
+      <p>Paste the page you're promoting, pick where it's going, and get the tracked link plus the short link name to create in Short.io. Follows the L4GG naming rules so every link reads the same way in Google Analytics.</p>
+    </div>
+    <span class="lockbadge">No AI &#xB7; works offline</span>
+  </header>
+
+  <h2>Do I need a tracked link?</h2>
+  <div class="need">
+    <div><span class="pill no">No</span><b>Mailchimp emails</b><span>Includes targeted Mailchimp sends. Mailchimp tags every link for you, so use the plain short link.</span></div>
+    <div><span class="pill yes">Yes</span><b>Social posts</b><span>LinkedIn, Facebook Page, Facebook Group, Bluesky. Nothing tags these for you.</span></div>
+    <div><span class="pill yes">Yes</span><b>SMS</b><span>SlickText doesn't track clicks, so the tag in the short link is the only record.</span></div>
+    <div><span class="pill soon">Coming soon</span><b>YouTube and Resisting Injustice</b><span>Video descriptions need tags too. The naming is still being finalized.</span></div>
+    <div><span class="pill soon">Coming soon</span><b>Targeted emails (MixMax, Gmail)</b><span>Hyperlink the tagged page directly. No short link needed.</span></div>
+    <div><span class="pill no">No</span><b>Everywhere else</b><span>Slides, flyers, partner asks, a colleague asking for the link: the plain short link is fine.</span></div>
+  </div>
+
+  <h2>Build your links</h2>
+  <div class="card">
+    <div class="fields">
+      <label class="f">
+        <span>1. The page you're promoting</span>
+        <input id="dest" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://www.lawyersforgoodgovernment.org/midterm-mobilization-hub">
+        <small>The full page address, not the short link. Copy it from your browser's address bar.</small>
+      </label>
+      <div class="two">
+        <label class="f">
+          <span>2. Short link name</span>
+          <input id="base" type="text" autocomplete="off" spellcheck="false" placeholder="EP">
+          <small>Usually the campaign's plain short link, e.g. <b>EP</b> for L4GG.org/EP. Keep it short. Channel codes are added for you.</small>
+        </label>
+        <label class="f">
+          <span>3. Campaign name <span class="hint">(optional)</span></span>
+          <input id="camp" type="text" autocomplete="off" spellcheck="false" placeholder="election_protection_2026">
+          <small>Add one when several channels are pushing the same thing at once. Lowercase with underscores.</small>
+        </label>
+      </div>
+      <fieldset>
+        <legend>4. Where is it going?</legend>
+        <div class="grouplabel">Social</div>
+        <div class="chans" id="chans-social"></div>
+        <div class="grouplabel">Text message</div>
+        <div class="chans" id="chans-sms"></div>
+        <div class="grouplabel">Coming soon</div>
+        <div class="chans">
+          <span class="chan off" title="Naming still being finalized"><input type="checkbox" disabled> YouTube / Resisting Injustice</span>
+          <span class="chan off" title="Naming still being finalized"><input type="checkbox" disabled> Targeted email (MixMax, Gmail)</span>
+        </div>
+      </fieldset>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+  </div>
+
+  <h2>Your links</h2>
+  <div id="out" class="results"><div class="empty">Fill in the page and a short link name to see your links.</div></div>
+  <div class="actions" id="bulk" hidden style="margin-top:12px">
+    <button class="btn primary" type="button" id="copyall">Copy all as a table</button>
+    <a class="btn" href="https://app.short.io/" target="_blank" rel="noopener noreferrer">Open Short.io &#x2197;</a>
+    <span class="hint">The table pastes cleanly into Google Sheets, Docs or Asana.</span>
+  </div>
+
+  <h2>Making the short links in Short.io</h2>
+  <div class="card">
+    <ol class="steps">
+      <li>In Short.io, choose the <b>L4GG.org</b> domain and create a new link.</li>
+      <li>Paste the <b>tracked page</b> as the original URL.</li>
+      <li>Set the short path to the <b>short link name</b> exactly as shown, capital letters included.</li>
+      <li>Repeat for each channel, then click one of the new links to check it lands on the right page.</li>
+    </ol>
+  </div>
+
+  <h2>The naming rules</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Channel</th><th>utm_source</th><th>utm_medium</th><th>Short link ends in</th></tr></thead>
+      <tbody id="ref"></tbody>
+    </table>
+  </div>
+  <ul class="rules" style="margin-top:12px">
+    <li><b>Tags:</b> lowercase, full words, underscores between words. Abbreviations only go in short link names.</li>
+    <li><b>Short links:</b> always on L4GG.org, words run together with capitals (RejectOvertonLI), no hyphens or underscores.</li>
+    <li><b>Destinations:</b> always the full https://www. address of an L4GG page, never another short link. Some short links drop the tags if you chain them.</li>
+    <li><b>One name per campaign</b> across every channel, so all the links group together in reports.</li>
+  </ul>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // The L4GG taxonomy. Changing a channel here changes it everywhere on the page.
+  var CHANNELS = [
+    { id: "li",   group: "social", label: "LinkedIn",       source: "linkedin",       medium: "social", suffix: "LI",   on: true },
+    { id: "fbp",  group: "social", label: "Facebook Page",  source: "facebook_page",  medium: "social", suffix: "FBP",  on: true },
+    { id: "fbg",  group: "social", label: "Facebook Group", source: "facebook_group", medium: "social", suffix: "FBG",  on: true },
+    { id: "bsky", group: "social", label: "Bluesky",        source: "bluesky",        medium: "social", suffix: "BSKY", on: true },
+    { id: "sms",  group: "sms",    label: "SMS (SlickText)", source: "sms",           medium: "text",   suffix: "SMS",  on: false }
+  ];
+  var L4GG_HOSTS = ["lawyersforgoodgovernment.org", "l4ggaction.org"];
+  var SHORT_HOSTS = ["l4gg.org", "short.io", "bit.ly"];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var dest = $("dest"), base = $("base"), camp = $("camp"), out = $("out"), msgs = $("msgs"), bulk = $("bulk");
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // Build the channel checkboxes and the reference table from CHANNELS.
+  CHANNELS.forEach(function (c) {
+    var lab = document.createElement("label");
+    lab.className = "chan";
+    lab.innerHTML = '<input type="checkbox" data-ch="' + c.id + '"' + (c.on ? " checked" : "") + "> " +
+      esc(c.label) + " <code>" + esc(c.suffix) + "</code>";
+    $(c.group === "social" ? "chans-social" : "chans-sms").appendChild(lab);
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + esc(c.label) + "</td><td><code>" + esc(c.source) + "</code></td><td><code>" +
+      esc(c.medium) + "</code></td><td><code>" + esc(c.suffix) + "</code></td>";
+    $("ref").appendChild(tr);
+  });
+  var tr2 = document.createElement("tr");
+  tr2.innerHTML = '<td>YouTube / video</td><td colspan="3" class="soon">Coming soon</td>';
+  $("ref").appendChild(tr2);
+  var tr3 = document.createElement("tr");
+  tr3.innerHTML = '<td>Targeted email (MixMax, Gmail)</td><td><code>[list name]</code></td><td><code>email</code></td><td class="soon">No short link</td>';
+  $("ref").appendChild(tr3);
+
+  // "Reject Overton" or "reject-overton" -> "RejectOverton". Keeps existing capitals (EP, TXCommit).
+  function shortName(s) {
+    return String(s).trim()
+      .replace(/^https?:\/\/(www\.)?l4gg\.org\//i, "")
+      .split(/[^A-Za-z0-9]+/).filter(Boolean)
+      .map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); })
+      .join("");
+  }
+  // "Election Protection 2026" -> "election_protection_2026"
+  function campaignName(s) {
+    return String(s).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  }
+  function hostMatches(host, list) {
+    host = host.toLowerCase().replace(/^www\./, "");
+    return list.some(function (h) { return host === h || host.slice(-(h.length + 1)) === "." + h; });
+  }
+
+  // Returns { url: URL object or null, notes: [ {kind, text} ] }
+  function cleanDestination(raw) {
+    var notes = [];
+    raw = String(raw).trim();
+    if (!raw) return { url: null, notes: notes };
+    if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+    var u;
+    try { u = new URL(raw); } catch (e) {
+      notes.push({ kind: "bad", text: "That doesn't look like a web address. Copy it straight from your browser's address bar." });
+      return { url: null, notes: notes };
+    }
+    if (hostMatches(u.hostname, SHORT_HOSTS)) {
+      notes.push({ kind: "bad", text: "That's a short link. Open it in your browser and paste the full page address it lands on instead. Pointing a short link at another short link can drop the tags." });
+      return { url: null, notes: notes };
+    }
+    if (u.protocol !== "https:") { u.protocol = "https:"; notes.push({ kind: "ok", text: "Switched to https." }); }
+    if (hostMatches(u.hostname, L4GG_HOSTS)) {
+      if (!/^www\./i.test(u.hostname)) {
+        u.hostname = "www." + u.hostname.toLowerCase();
+        notes.push({ kind: "ok", text: "Added www. to the address. Without it the site redirects and can drop the tags." });
+      }
+    } else {
+      notes.push({ kind: "warn", text: "This isn't an L4GG page. Google Analytics only sees visits to lawyersforgoodgovernment.org and l4ggaction.org, and our links should point back to L4GG." });
+    }
+    var dropped = [];
+    Array.from(u.searchParams.keys()).forEach(function (k) {
+      if (/^utm_/i.test(k) || k === "clid") { dropped.push(k); }
+    });
+    dropped.forEach(function (k) { u.searchParams.delete(k); });
+    if (dropped.length) notes.push({ kind: "warn", text: "Removed old tags from the address (" + dropped.join(", ") + "). Each channel gets fresh ones below." });
+    if (/\/thank-you/i.test(u.pathname)) {
+      notes.push({ kind: "warn", text: "This is a thank-you page. Promote the page with the form on it instead, so the thank-you page can count the sign-up." });
+    }
+    return { url: u, notes: notes };
+  }
+
+  function tagged(u, ch, campaign) {
+    var t = new URL(u.toString());
+    t.searchParams.set("utm_source", ch.source);
+    t.searchParams.set("utm_medium", ch.medium);
+    if (campaign) t.searchParams.set("utm_campaign", campaign);
+    return t.toString();
+  }
+
+  var last = [];
+
+  function render() {
+    var d = cleanDestination(dest.value);
+    var name = shortName(base.value);
+    var campaign = campaignName(camp.value);
+    var notes = d.notes.slice();
+    if (base.value.trim() && name !== base.value.trim()) {
+      notes.push({ kind: "ok", text: "Short link name cleaned up to " + name + " (no spaces, hyphens or underscores)." });
+    }
+    if (camp.value.trim() && campaign !== camp.value.trim()) {
+      notes.push({ kind: "ok", text: "Campaign name formatted as " + campaign + "." });
+    }
+    if (name.length > 16) notes.push({ kind: "warn", text: "That short link name is long. Every channel adds its code to it, so shorter is easier to read and type." });
+    msgs.innerHTML = notes.map(function (n) { return '<div class="msg ' + n.kind + '">' + esc(n.text) + "</div>"; }).join("");
+
+    var picked = CHANNELS.filter(function (c) {
+      var box = document.querySelector('input[data-ch="' + c.id + '"]');
+      return box && box.checked;
+    });
+
+    last = [];
+    if (!d.url || !name || !picked.length) {
+      var why = !d.url ? "Fill in the page you're promoting." : !name ? "Add a short link name." : "Pick at least one channel.";
+      out.innerHTML = '<div class="empty">' + esc(why) + "</div>";
+      bulk.hidden = true;
+      return;
+    }
+    var html = "";
+    var plain = "L4GG.org/" + name;
+    html += '<div class="res"><div class="who"><b>Plain short link</b><span>For Mailchimp, staff and partners. Points to the page with no tags.</span></div>' +
+      row("Short link", plain, true) + row("Points to", d.url.toString(), false) + "</div>";
+    last.push({ ch: "Plain (Mailchimp, staff, partners)", short: plain, url: d.url.toString() });
+    picked.forEach(function (c) {
+      var s = "L4GG.org/" + name + c.suffix;
+      var t = tagged(d.url, c, campaign);
+      last.push({ ch: c.label, short: s, url: t });
+      html += '<div class="res"><div class="who"><b>' + esc(c.label) + "</b><span>utm_source=" + esc(c.source) +
+        " &#xB7; utm_medium=" + esc(c.medium) + (campaign ? " &#xB7; utm_campaign=" + esc(campaign) : "") + "</span></div>" +
+        row("Short link", s, true) + row("Tracked page", t, false) + "</div>";
+    });
+    out.innerHTML = html;
+    bulk.hidden = false;
+  }
+
+  function row(k, v, isShort) {
+    return '<div class="row"><span class="k">' + esc(k) + '</span><span class="v' + (isShort ? " short" : "") + '">' + esc(v) +
+      '</span><button class="btn" type="button" data-copy="' + esc(v) + '">Copy</button></div>';
+  }
+
+  function copyText(text, btn) {
+    function done() {
+      if (!btn) return;
+      var was = btn.textContent;
+      btn.textContent = "Copied";
+      btn.classList.add("done");
+      setTimeout(function () { btn.textContent = was; btn.classList.remove("done"); }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+    } else { fallback(text); done(); }
+  }
+  function fallback(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  out.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-copy]");
+    if (b) copyText(b.getAttribute("data-copy"), b);
+  });
+  $("copyall").addEventListener("click", function (e) {
+    var lines = ["Channel\tShort link\tTracked page"].concat(last.map(function (r) { return r.ch + "\t" + r.short + "\t" + r.url; }));
+    copyText(lines.join("\n"), e.currentTarget);
+  });
+  [dest, base, camp].forEach(function (el) { el.addEventListener("input", render); });
+  document.addEventListener("change", function (e) { if (e.target.matches("input[data-ch]")) render(); });
+  render();
+})();
+</script>
+</body>
+</html>
