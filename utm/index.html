@@ -93,6 +93,17 @@ legend { font-weight:600; font-size:14px; margin-bottom:8px; padding:0; }
 .btn.big { font-size:15px; padding:11px 18px; }
 .flash { animation:flash 1.4s ease; }
 @keyframes flash { from { box-shadow:0 0 0 4px var(--cyan); border-radius:12px; } to { box-shadow:0 0 0 0 transparent; } }
+.modes { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.modes button { font:600 14px var(--ui); border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:8px 16px; cursor:pointer; }
+.modes button[aria-pressed="true"] { background:var(--navy); border-color:var(--navy); color:var(--card); }
+.modes button:focus-visible { outline:3px solid var(--cyan); outline-offset:2px; }
+textarea { width:100%; min-height:110px; font:14px/1.5 var(--mono); padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); resize:vertical; }
+textarea:focus { outline:3px solid var(--cyan-soft); border-color:var(--cyan); }
+input[type=date] { font:15px var(--ui); padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); width:100%; }
+.evrow { display:grid; gap:8px 12px; grid-template-columns:minmax(0,3fr) minmax(0,2fr) auto; align-items:end; padding:10px 0; border-top:1px solid var(--line); }
+@media (max-width:640px) { .evrow { grid-template-columns:minmax(0,1fr); } }
+.evrow label { display:grid; gap:4px; font-size:12px; color:var(--muted); font-weight:600; }
+.tag-proposed { font:700 10px var(--ui); text-transform:uppercase; letter-spacing:.06em; background:var(--warn-soft); color:var(--warn); padding:2px 6px; border-radius:999px; vertical-align:middle; }
 .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .empty { color:var(--muted); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:18px; text-align:center; }
 
@@ -125,11 +136,16 @@ ol.steps li, ul.rules li { margin:4px 0; }
     <div><span class="pill yes">Always</span><b>SMS</b><span>Every text needs an L4GG short link, tracked or not. We don't use SlickText's own short links because they look suspicious. Give it a friendly name close to the original.</span></div>
     <div><span class="pill soon">Coming soon</span><b>YouTube and Resisting Injustice</b><span>Video descriptions need tags too. The naming is still being finalized.</span></div>
     <div><span class="pill soon">Coming soon</span><b>Targeted emails (MixMax, Gmail)</b><span>Hyperlink the tagged page directly. No short link needed.</span></div>
-    <div><span class="pill no">No</span><b>Everywhere else</b><span>Slides, flyers, partner asks, a colleague asking for the link: the plain short link is fine.</span></div>
+    <div><span class="pill yes">Yes</span><b>Links shared at events</b><span>Slides and Zoom chat links at our events get tracked, so we can see who took action after attending. Use the event option below.</span></div>
+    <div><span class="pill no">No</span><b>Everywhere else</b><span>One-pagers, flyers, partner asks, a colleague asking for the link: usually the plain short link is fine.</span></div>
   </div>
 
   <h2>Build your links</h2>
-  <div class="card">
+  <div class="modes" role="group" aria-label="What are the links for?">
+    <button type="button" id="m-page" aria-pressed="true">Promoting a page (social, SMS)</button>
+    <button type="button" id="m-event" aria-pressed="false">Links shared at an event (slides, Zoom chat)</button>
+  </div>
+  <div class="card" id="card-page">
     <div class="fields">
       <label class="f">
         <span>1. The page you're promoting</span>
@@ -170,6 +186,42 @@ ol.steps li, ul.rules li { margin:4px 0; }
     <div class="actions" style="margin-top:16px"><button class="btn primary big" type="button" id="go">Build my links &#x2193;</button><span class="hint" id="gohint" aria-live="polite"></span></div>
   </div>
 
+  <div class="card" id="card-event" hidden>
+    <div class="fields">
+      <div class="two">
+        <label class="f">
+          <span>1. Event date</span>
+          <input id="evdate" type="date">
+          <small>The date goes into every tag, so one event's results group together in reports.</small>
+        </label>
+        <label class="f">
+          <span>2. Topic word <span class="hint">(optional)</span></span>
+          <input id="evtopic" type="text" autocomplete="off" spellcheck="false" placeholder="SCOTUS">
+          <small>One short word that makes the event easy to spot, e.g. SCOTUS.</small>
+        </label>
+      </div>
+      <label class="f">
+        <span>3. Paste the Zoom description, chat message or slide text</span>
+        <textarea id="evtext" spellcheck="false" placeholder="Paste everything here. The builder pulls out every link (and skips the Zoom join link)."></textarea>
+        <small>Or add links one at a time below. Short links can't be read here, so swap any L4GG.org link for the full page it goes to.</small>
+      </label>
+      <div id="evlinks"></div>
+      <div class="actions"><button class="btn" type="button" id="evadd">+ Add a link</button></div>
+    </div>
+    <div class="msgs" id="evmsgs" aria-live="polite"></div>
+    <div class="actions" style="margin-top:16px"><button class="btn primary big" type="button" id="evgo">Build event links &#x2193;</button><span class="hint" id="evhint" aria-live="polite"></span></div>
+  </div>
+
+  <div id="evresults" hidden>
+  <h2>Your event links</h2>
+  <div id="evout" class="results"></div>
+  <div class="actions" style="margin-top:12px">
+    <button class="btn primary" type="button" id="evcopyall">Copy all as a table</button>
+    <a class="btn" href="https://app.short.io/" target="_blank" rel="noopener noreferrer">Open Short.io &#x2197;</a>
+    <span class="hint">Use the short links on the slides and in the Zoom chat.</span>
+  </div>
+  </div>
+
   <div id="results" hidden>
   <h2>Your links</h2>
   <div id="out" class="results"><div class="empty">Fill in the page and a short link name to see your links.</div></div>
@@ -202,6 +254,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
     <li><b>Short links:</b> always on L4GG.org, words run together with capitals (RejectOvertonLI), no hyphens or underscores. SMS links get a friendly name of their own (40Min), never a channel code.</li>
     <li><b>Destinations:</b> always the full https://www. address of an L4GG page, never another short link. Some short links drop the tags if you chain them.</li>
     <li><b>One name per campaign</b> across every channel, so all the links group together in reports.</li>
+    <li><b>Events</b> <span class="tag-proposed">Proposed</span>: source is "event" plus the date, plus an optional topic word (event_2026_10_14_scotus); medium is event. Each link gets a friendly short name, like DonateSCOTUS or SubscribeOct14.</li>
   </ul>
 </div>
 
@@ -246,6 +299,9 @@ ol.steps li, ul.rules li { margin:4px 0; }
   var tr3 = document.createElement("tr");
   tr3.innerHTML = '<td>Targeted email (MixMax, Gmail)</td><td><code>[list name]</code></td><td><code>email</code></td><td class="soon">No short link</td>';
   $("ref").appendChild(tr3);
+  var tr4 = document.createElement("tr");
+  tr4.innerHTML = '<td>Event slides and Zoom chat <span class="tag-proposed">Proposed</span></td><td><code>event_2026_10_14_scotus</code></td><td><code>event</code></td><td>Its own friendly name per link (e.g. DonateSCOTUS)</td>';
+  $("ref").appendChild(tr4);
 
   // "Reject Overton" or "reject-overton" -> "RejectOverton". Keeps existing capitals (EP, TXCommit).
   function shortName(s) {
@@ -413,6 +469,132 @@ ol.steps li, ul.rules li { margin:4px 0; }
     out.classList.remove("flash"); void out.offsetWidth; out.classList.add("flash");
   });
   document.addEventListener("change", function (e) { if (e.target.matches("input[data-ch]")) render(); });
+
+  // ---- Links shared at an event ----
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var evdate = $("evdate"), evtopic = $("evtopic"), evtext = $("evtext"), evlinks = $("evlinks");
+  var evlast = [], evReady = false, evWhy = "";
+  function setMode(ev) {
+    $("m-page").setAttribute("aria-pressed", ev ? "false" : "true");
+    $("m-event").setAttribute("aria-pressed", ev ? "true" : "false");
+    $("card-page").hidden = ev;
+    $("card-event").hidden = !ev;
+    if (ev) { $("results").hidden = true; } else { $("evresults").hidden = true; }
+  }
+  $("m-page").addEventListener("click", function () { setMode(false); });
+  $("m-event").addEventListener("click", function () { setMode(true); });
+
+  function addRow(url) {
+    var div = document.createElement("div");
+    div.className = "evrow";
+    div.innerHTML = '<label>Page people should go to<input type="url" class="ev-url" spellcheck="false" autocomplete="off" placeholder="https://www.lawyersforgoodgovernment.org/donate"></label>' +
+      '<label>Short link name<input type="text" class="ev-name" spellcheck="false" autocomplete="off" placeholder="Filled in for you"></label>' +
+      '<button class="btn ev-del" type="button">Remove</button>';
+    div.querySelector(".ev-url").value = url || "";
+    evlinks.appendChild(div);
+    return div;
+  }
+  // Pulls every web address out of pasted text. Skips Zoom join links.
+  function findUrls(text) {
+    var re = /(https?:\/\/[^\s<>"')\]]+|(?:www\.)?(?:l4gg\.org|lawyersforgoodgovernment\.org|l4ggaction\.org)\/[^\s<>"')\]]*)/gi;
+    var seen = {}, out = [];
+    (String(text).match(re) || []).forEach(function (u) {
+      u = u.replace(/[.,;:!?]+$/, "");
+      if (/^https?:\/\/([a-z0-9-]+\.)*zoom\.(us|com)\b/i.test(u)) return;
+      var k = u.toLowerCase();
+      if (!seen[k]) { seen[k] = 1; out.push(u); }
+    });
+    return out;
+  }
+  evtext.addEventListener("input", function () {
+    var have = {};
+    Array.prototype.forEach.call(evlinks.querySelectorAll(".ev-url"), function (i) { have[i.value.trim().toLowerCase()] = 1; });
+    var blank = evlinks.querySelector(".ev-url");
+    findUrls(evtext.value).forEach(function (u) {
+      if (have[u.toLowerCase()]) return;
+      if (blank && !blank.value.trim()) { blank.value = u; blank = null; } else { addRow(u); }
+      have[u.toLowerCase()] = 1;
+    });
+    evRender();
+  });
+  $("evadd").addEventListener("click", function () { addRow("").querySelector(".ev-url").focus(); });
+  evlinks.addEventListener("click", function (e) {
+    var b = e.target.closest(".ev-del");
+    if (b) { b.parentNode.remove(); evRender(); }
+  });
+  evlinks.addEventListener("input", function (e) {
+    if (e.target.classList.contains("ev-name")) e.target.dataset.edited = "1";
+    evRender();
+  });
+  [evdate, evtopic].forEach(function (el) { el.addEventListener("input", evRender); el.addEventListener("change", evRender); });
+
+  function evSource() {
+    if (!evdate.value) return "";
+    var t = campaignName(evtopic.value);
+    return "event_" + evdate.value.replace(/-/g, "_") + (t ? "_" + t : "");
+  }
+  function evSuffix() {
+    var t = shortName(evtopic.value);
+    if (t) return t;
+    if (!evdate.value) return "";
+    var p = evdate.value.split("-");
+    return MONTHS[+p[1] - 1] + (+p[2]);
+  }
+  function wordFor(u) {
+    var segs = u.pathname.split("/").filter(Boolean);
+    return shortName(segs.length ? segs[segs.length - 1] : "") || "Home";
+  }
+  function evRender() {
+    var notes = [], rows = [], names = {};
+    var src = evSource(), suf = evSuffix();
+    Array.prototype.forEach.call(evlinks.querySelectorAll(".evrow"), function (r) {
+      var urlIn = r.querySelector(".ev-url"), nameIn = r.querySelector(".ev-name");
+      var raw = urlIn.value.trim();
+      if (!raw) return;
+      var d = cleanDestination(raw);
+      var label = raw.length > 60 ? raw.slice(0, 57) + "..." : raw;
+      d.notes.forEach(function (n) { if (n.kind !== "ok") notes.push({ kind: n.kind, text: label + ": " + n.text }); });
+      if (!d.url) return;
+      if (!nameIn.dataset.edited) nameIn.value = wordFor(d.url) + suf;
+      var nm = shortName(nameIn.value);
+      if (nm && names[nm.toLowerCase()]) notes.push({ kind: "bad", text: "Two links share the short name " + nm + ". Give one of them a different name." });
+      if (nm) names[nm.toLowerCase()] = 1;
+      rows.push({ url: d.url, name: nm });
+    });
+    $("evmsgs").innerHTML = notes.map(function (n) { return '<div class="msg ' + n.kind + '">' + esc(n.text) + "</div>"; }).join("");
+    evlast = [];
+    if (!src) { evReady = false; evWhy = "Add the event date."; return; }
+    if (!rows.length) { evReady = false; evWhy = "Paste the event text or add a link."; return; }
+    var ch = { source: src, medium: "event" };
+    var html = "";
+    rows.forEach(function (r) {
+      var t = tagged(r.url, ch, "");
+      var s = r.name ? "L4GG.org/" + r.name : "(pick a name)";
+      var where = r.url.hostname.replace(/^www\./, "") + r.url.pathname;
+      evlast.push({ ch: where, short: s, url: t });
+      html += '<div class="res"><div class="who"><b>' + esc(where) + "</b><span>utm_source=" + esc(src) + " &#xB7; utm_medium=event</span></div>" +
+        row("Short link", s, true) + row("Tracked page", t, false) + "</div>";
+    });
+    $("evout").innerHTML = html;
+    evReady = true;
+    $("evhint").textContent = "";
+  }
+  $("evgo").addEventListener("click", function () {
+    evRender();
+    if (!evReady) { $("evhint").textContent = evWhy; return; }
+    $("evresults").hidden = false;
+    $("evresults").scrollIntoView({ behavior: "smooth", block: "start" });
+    var o = $("evout"); o.classList.remove("flash"); void o.offsetWidth; o.classList.add("flash");
+  });
+  $("evout").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-copy]");
+    if (b) copyText(b.getAttribute("data-copy"), b);
+  });
+  $("evcopyall").addEventListener("click", function (e) {
+    var lines = ["Link\tShort link\tTracked page"].concat(evlast.map(function (r) { return r.ch + "\t" + r.short + "\t" + r.url; }));
+    copyText(lines.join("\n"), e.currentTarget);
+  });
+  addRow("");
   render();
 })();
 </script>
