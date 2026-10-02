@@ -90,6 +90,9 @@ legend { font-weight:600; font-size:14px; margin-bottom:8px; padding:0; }
 .btn.primary { background:var(--navy); border-color:var(--navy); color:var(--card); }
 .btn:focus-visible, .chan:focus-within { outline:3px solid var(--cyan); outline-offset:2px; }
 .btn.done { background:var(--ok-soft); border-color:var(--ok); color:var(--ok); }
+.btn.big { font-size:15px; padding:11px 18px; }
+.flash { animation:flash 1.4s ease; }
+@keyframes flash { from { box-shadow:0 0 0 4px var(--cyan); border-radius:12px; } to { box-shadow:0 0 0 0 transparent; } }
 .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .empty { color:var(--muted); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:18px; text-align:center; }
 
@@ -119,7 +122,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
   <div class="need">
     <div><span class="pill no">No</span><b>Mailchimp emails</b><span>Includes targeted Mailchimp sends. Mailchimp tags every link for you, so use the plain short link.</span></div>
     <div><span class="pill yes">Yes</span><b>Social posts</b><span>LinkedIn, Facebook Page, Facebook Group, Bluesky. Nothing tags these for you.</span></div>
-    <div><span class="pill yes">Yes</span><b>SMS</b><span>SlickText doesn't track clicks, so the tag in the short link is the only record.</span></div>
+    <div><span class="pill yes">Always</span><b>SMS</b><span>Every text needs an L4GG short link, tracked or not. We don't use SlickText's own short links because they look suspicious. Give it a friendly name close to the original.</span></div>
     <div><span class="pill soon">Coming soon</span><b>YouTube and Resisting Injustice</b><span>Video descriptions need tags too. The naming is still being finalized.</span></div>
     <div><span class="pill soon">Coming soon</span><b>Targeted emails (MixMax, Gmail)</b><span>Hyperlink the tagged page directly. No short link needed.</span></div>
     <div><span class="pill no">No</span><b>Everywhere else</b><span>Slides, flyers, partner asks, a colleague asking for the link: the plain short link is fine.</span></div>
@@ -164,14 +167,17 @@ ol.steps li, ul.rules li { margin:4px 0; }
       </fieldset>
     </div>
     <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="actions" style="margin-top:16px"><button class="btn primary big" type="button" id="go">Build my links &#x2193;</button><span class="hint" id="gohint" aria-live="polite"></span></div>
   </div>
 
+  <div id="results" hidden>
   <h2>Your links</h2>
   <div id="out" class="results"><div class="empty">Fill in the page and a short link name to see your links.</div></div>
   <div class="actions" id="bulk" hidden style="margin-top:12px">
     <button class="btn primary" type="button" id="copyall">Copy all as a table</button>
     <a class="btn" href="https://app.short.io/" target="_blank" rel="noopener noreferrer">Open Short.io &#x2197;</a>
     <span class="hint">The table pastes cleanly into Google Sheets, Docs or Asana.</span>
+  </div>
   </div>
 
   <h2>Making the short links in Short.io</h2>
@@ -302,7 +308,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
     return t.toString();
   }
 
-  var last = [];
+  var last = [], lastReady = false, lastWhy = "";
 
   function render() {
     var d = cleanDestination(dest.value);
@@ -338,6 +344,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
       var why = !d.url ? "Fill in the page you're promoting." : !name ? "Add a short link name." : "Pick at least one channel.";
       out.innerHTML = '<div class="empty">' + esc(why) + "</div>";
       bulk.hidden = true;
+      lastReady = false; lastWhy = why;
       return;
     }
     var html = "";
@@ -361,6 +368,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
     });
     out.innerHTML = html;
     bulk.hidden = false;
+    lastReady = true; $("gohint").textContent = "";
   }
 
   function row(k, v, isShort) {
@@ -397,6 +405,13 @@ ol.steps li, ul.rules li { margin:4px 0; }
     copyText(lines.join("\n"), e.currentTarget);
   });
   [dest, base, camp, smsname].forEach(function (el) { el.addEventListener("input", render); });
+  $("go").addEventListener("click", function () {
+    render();
+    if (!lastReady) { $("gohint").textContent = lastWhy; return; }
+    $("results").hidden = false;
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+    out.classList.remove("flash"); void out.offsetWidth; out.classList.add("flash");
+  });
   document.addEventListener("change", function (e) { if (e.target.matches("input[data-ch]")) render(); });
   render();
 })();
