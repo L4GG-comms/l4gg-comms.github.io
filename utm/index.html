@@ -137,7 +137,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
         <label class="f">
           <span>2. Short link name</span>
           <input id="base" type="text" autocomplete="off" spellcheck="false" placeholder="EP">
-          <small>Usually the campaign's plain short link, e.g. <b>EP</b> for L4GG.org/EP. Keep it short. Channel codes are added for you.</small>
+          <small>Usually the campaign's plain short link, e.g. <b>EP</b> for L4GG.org/EP. Keep it short. Social channel codes are added for you.</small>
         </label>
         <label class="f">
           <span>3. Campaign name <span class="hint">(optional)</span></span>
@@ -151,6 +151,11 @@ ol.steps li, ul.rules li { margin:4px 0; }
         <div class="chans" id="chans-social"></div>
         <div class="grouplabel">Text message</div>
         <div class="chans" id="chans-sms"></div>
+        <label class="f" id="smswrap" hidden style="margin-top:10px">
+          <span>SMS short link name</span>
+          <input id="smsname" type="text" autocomplete="off" spellcheck="false" placeholder="40Min">
+          <small>Texts should feel personal, so the SMS link gets its own friendly name instead of a channel code. Riff on the main name, e.g. L4GG.org/40Minutes becomes L4GG.org/40Min. Never use SMS, text or anything that looks like tracking.</small>
+        </label>
         <div class="grouplabel">Coming soon</div>
         <div class="chans">
           <span class="chan off" title="Naming still being finalized"><input type="checkbox" disabled> YouTube / Resisting Injustice</span>
@@ -188,7 +193,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
   </div>
   <ul class="rules" style="margin-top:12px">
     <li><b>Tags:</b> lowercase, full words, underscores between words. Abbreviations only go in short link names.</li>
-    <li><b>Short links:</b> always on L4GG.org, words run together with capitals (RejectOvertonLI), no hyphens or underscores.</li>
+    <li><b>Short links:</b> always on L4GG.org, words run together with capitals (RejectOvertonLI), no hyphens or underscores. SMS links get a friendly name of their own (40Min), never a channel code.</li>
     <li><b>Destinations:</b> always the full https://www. address of an L4GG page, never another short link. Some short links drop the tags if you chain them.</li>
     <li><b>One name per campaign</b> across every channel, so all the links group together in reports.</li>
   </ul>
@@ -203,13 +208,13 @@ ol.steps li, ul.rules li { margin:4px 0; }
     { id: "fbp",  group: "social", label: "Facebook Page",  source: "facebook_page",  medium: "social", suffix: "FBP",  on: true },
     { id: "fbg",  group: "social", label: "Facebook Group", source: "facebook_group", medium: "social", suffix: "FBG",  on: true },
     { id: "bsky", group: "social", label: "Bluesky",        source: "bluesky",        medium: "social", suffix: "BSKY", on: true },
-    { id: "sms",  group: "sms",    label: "SMS (SlickText)", source: "sms",           medium: "text",   suffix: "SMS",  on: false }
+    { id: "sms",  group: "sms",    label: "SMS (SlickText)", source: "sms",           medium: "text",   suffix: "",     on: false, custom: true }
   ];
   var L4GG_HOSTS = ["lawyersforgoodgovernment.org", "l4ggaction.org"];
   var SHORT_HOSTS = ["l4gg.org", "short.io", "bit.ly"];
 
   var $ = function (id) { return document.getElementById(id); };
-  var dest = $("dest"), base = $("base"), camp = $("camp"), out = $("out"), msgs = $("msgs"), bulk = $("bulk");
+  var dest = $("dest"), base = $("base"), camp = $("camp"), out = $("out"), msgs = $("msgs"), bulk = $("bulk"), smsname = $("smsname"), smswrap = $("smswrap");
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -222,11 +227,11 @@ ol.steps li, ul.rules li { margin:4px 0; }
     var lab = document.createElement("label");
     lab.className = "chan";
     lab.innerHTML = '<input type="checkbox" data-ch="' + c.id + '"' + (c.on ? " checked" : "") + "> " +
-      esc(c.label) + " <code>" + esc(c.suffix) + "</code>";
+      esc(c.label) + (c.custom ? "" : " <code>" + esc(c.suffix) + "</code>");
     $(c.group === "social" ? "chans-social" : "chans-sms").appendChild(lab);
     var tr = document.createElement("tr");
     tr.innerHTML = "<td>" + esc(c.label) + "</td><td><code>" + esc(c.source) + "</code></td><td><code>" +
-      esc(c.medium) + "</code></td><td><code>" + esc(c.suffix) + "</code></td>";
+      esc(c.medium) + "</code></td><td>" + (c.custom ? "Its own friendly name (e.g. 40Min)" : "<code>" + esc(c.suffix) + "</code>") + "</td>";
     $("ref").appendChild(tr);
   });
   var tr2 = document.createElement("tr");
@@ -311,12 +316,22 @@ ol.steps li, ul.rules li { margin:4px 0; }
       notes.push({ kind: "ok", text: "Campaign name formatted as " + campaign + "." });
     }
     if (name.length > 16) notes.push({ kind: "warn", text: "That short link name is long. Every channel adds its code to it, so shorter is easier to read and type." });
-    msgs.innerHTML = notes.map(function (n) { return '<div class="msg ' + n.kind + '">' + esc(n.text) + "</div>"; }).join("");
 
     var picked = CHANNELS.filter(function (c) {
       var box = document.querySelector('input[data-ch="' + c.id + '"]');
       return box && box.checked;
     });
+    var smsOn = picked.some(function (c) { return c.custom; });
+    smswrap.hidden = !smsOn;
+    var smsName = shortName(smsname.value);
+    if (smsOn && smsName) {
+      if (smsname.value.trim() !== smsName) notes.push({ kind: "ok", text: "SMS short link name cleaned up to " + smsName + "." });
+      if (/sms|text|txt/i.test(smsName)) notes.push({ kind: "warn", text: "The SMS link name includes \"" + (smsName.match(/sms|text|txt/i)[0]) + "\". Pick something that reads like a normal link so it doesn't look like tracking." });
+      if (name && smsName.toLowerCase() === name.toLowerCase()) notes.push({ kind: "bad", text: "The SMS link name can't be the same as the plain short link. That one already points to the untagged page." });
+      var clash = CHANNELS.filter(function (c) { return !c.custom && name && (name + c.suffix).toLowerCase() === smsName.toLowerCase(); });
+      if (clash.length) notes.push({ kind: "bad", text: "That SMS name is already used by the " + clash[0].label + " link." });
+    }
+    msgs.innerHTML = notes.map(function (n) { return '<div class="msg ' + n.kind + '">' + esc(n.text) + "</div>"; }).join("");
 
     last = [];
     if (!d.url || !name || !picked.length) {
@@ -331,8 +346,14 @@ ol.steps li, ul.rules li { margin:4px 0; }
       row("Short link", plain, true) + row("Points to", d.url.toString(), false) + "</div>";
     last.push({ ch: "Plain (Mailchimp, staff, partners)", short: plain, url: d.url.toString() });
     picked.forEach(function (c) {
-      var s = "L4GG.org/" + name + c.suffix;
       var t = tagged(d.url, c, campaign);
+      if (c.custom && !smsName) {
+        html += '<div class="res"><div class="who"><b>' + esc(c.label) + '</b><span>Give the SMS link its own name above to finish this one.</span></div>' +
+          row("Tracked page", t, false) + "</div>";
+        last.push({ ch: c.label, short: "(pick a name)", url: t });
+        return;
+      }
+      var s = "L4GG.org/" + (c.custom ? smsName : name + c.suffix);
       last.push({ ch: c.label, short: s, url: t });
       html += '<div class="res"><div class="who"><b>' + esc(c.label) + "</b><span>utm_source=" + esc(c.source) +
         " &#xB7; utm_medium=" + esc(c.medium) + (campaign ? " &#xB7; utm_campaign=" + esc(campaign) : "") + "</span></div>" +
@@ -375,7 +396,7 @@ ol.steps li, ul.rules li { margin:4px 0; }
     var lines = ["Channel\tShort link\tTracked page"].concat(last.map(function (r) { return r.ch + "\t" + r.short + "\t" + r.url; }));
     copyText(lines.join("\n"), e.currentTarget);
   });
-  [dest, base, camp].forEach(function (el) { el.addEventListener("input", render); });
+  [dest, base, camp, smsname].forEach(function (el) { el.addEventListener("input", render); });
   document.addEventListener("change", function (e) { if (e.target.matches("input[data-ch]")) render(); });
   render();
 })();
